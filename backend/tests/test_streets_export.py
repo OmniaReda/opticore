@@ -49,6 +49,21 @@ def _osm_xml() -> bytes:
     way(4, [(300, 50), (400, 50)], {"highway": "residential", "name": "شارع بعيد"})
     way(5, [(20, 150), (180, 150)], {"highway": "service"})
     way(6, [(30, 30), (40, 30), (40, 40)], {"building": "yes", "name": "مبنى"})
+    # House numbers: with street · without street (nearest street fills it) · outside · on a building way.
+    addr = [
+        (900, 60, 55, {"addr:housenumber": "12", "addr:street": "شارع تجريبي", "addr:street:en": "Test St."}),
+        (901, 100, 105, {"addr:housenumber": "3", "addr:district": "حي تجريبي"}),
+        (902, 350, 60, {"addr:housenumber": "99", "addr:street": "شارع بعيد"}),
+    ]
+    for nid, dx, dy, tags in addr:
+        lon, lat = _to_wgs(ks._X0 + dx, ks._Y0 + dy)
+        tag_xml = "".join(f'<tag k="{k}" v="{v}"/>' for k, v in tags.items())
+        nodes.append(f'<node id="{nid}" lat="{lat:.8f}" lon="{lon:.8f}">{tag_xml}</node>')
+    way(
+        7,
+        [(140, 260), (150, 260), (150, 270), (140, 270)],
+        {"building": "yes", "addr:housenumber": "7", "addr:street": "حارة جانبية"},
+    )
     body = "".join(nodes) + "".join(ways)
     return f'<?xml version="1.0" encoding="UTF-8"?><osm version="0.6">{body}</osm>'.encode()
 
@@ -65,10 +80,10 @@ def fake_osm(monkeypatch: pytest.MonkeyPatch) -> list[tuple[float, float, float,
     return calls
 
 
-def rows_of(content: bytes) -> tuple[list[tuple[Any, ...]], list[tuple[Any, ...]]]:
+def rows_of(content: bytes) -> tuple[list[tuple[Any, ...]], list[tuple[Any, ...]], list[tuple[Any, ...]]]:
     wb = load_workbook(io.BytesIO(content))
-    assert wb.sheetnames == ["Streets", "Source"]
-    return list(wb["Streets"].iter_rows(values_only=True)), list(wb["Source"].iter_rows(values_only=True))
+    assert wb.sheetnames == ["Addresses", "Streets", "Source"]
+    return tuple(list(wb[name].iter_rows(values_only=True)) for name in wb.sheetnames)  # type: ignore[return-value]
 
 
 def test_streets_after_first_kml(client: TestClient, fake_osm: list[Any]) -> None:
@@ -78,14 +93,32 @@ def test_streets_after_first_kml(client: TestClient, fake_osm: list[Any]) -> Non
     assert r.status_code == 200, r.text
     assert 'filename="streets.xlsx"' in r.headers["content-disposition"]
 
-    rows, source = rows_of(r.content)
-    assert rows[0] == ("Street (Arabic)", "Street (English)", "Type", "Length in boundary (m)", "OSM segments")
+    addresses, rows, source = rows_of(r.content)
+    assert addresses[0][:3] == ("Street (Arabic)", "Street (English)", "House number")
+    by_number = {a[2]: a for a in addresses[1:]}
+    assert set(by_number) == {"12", "3", "7"}  # '99' is outside the boundary
+    assert by_number["12"][:3] == ("شارع تجريبي", "Test St.", "12")
+    assert by_number["12"][7] == "OpenStreetMap address"
+    assert by_number["3"][0] == "شارع تجريبي" and by_number["3"][7] == "nearest OSM street"  # 5 m away
+    assert by_number["3"][3] == "حي تجريبي"
+    assert by_number["7"][0] == "حارة جانبية"  # a building way with a number → its centre
+    assert 30 < by_number["12"][5] < 31 and 31 < by_number["12"][6] < 32  # lat, lon
+
+    assert rows[0] == (
+        "Street (Arabic)",
+        "Street (English)",
+        "Type",
+        "Length in boundary (m)",
+        "OSM segments",
+        "House numbers",
+    )
     assert [row[:3] for row in rows[1:]] == [
         ("شارع تجريبي", "Test St.", "residential"),
         ("حارة جانبية", None, "footway"),
     ]
     assert rows[1][3] == pytest.approx(260, abs=1)  # measured in UTM, two segments summed
     assert rows[1][4] == 2
+    assert rows[1][5] == 2  # house numbers on that street: 12 and 3
     assert rows[2][3] == pytest.approx(50, abs=1)  # clipped at the boundary
     assert "OpenStreetMap contributors" in str(source[0][1])  # ODbL attribution
 

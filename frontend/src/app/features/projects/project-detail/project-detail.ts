@@ -66,9 +66,9 @@ export class ProjectDetail {
     // Street names come from OpenStreetMap inside the boundary: available right after the first KML.
     if (this.store.layers()?.boundary) {
       all.push({
-        label: 'Streets (Excel)',
+        label: 'Streets & numbers (Excel)',
         url: `${base}/streets`,
-        title: 'Street names inside the boundary, from OpenStreetMap',
+        title: 'House numbers and street names inside the boundary, from OpenStreetMap',
       });
     }
     return all;

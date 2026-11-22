@@ -9,7 +9,7 @@ import logging
 import urllib.error
 import urllib.parse
 import urllib.request
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -17,6 +17,8 @@ from pathlib import Path
 from geoalchemy2.shape import to_shape
 from openpyxl import Workbook
 from openpyxl.styles import Font
+from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.worksheet import Worksheet
 from shapely.geometry.base import BaseGeometry
 from shapely.strtree import STRtree
 
@@ -25,6 +27,7 @@ from app.config import get_settings
 from app.errors import ConflictError, ExternalServiceError
 from app.importers import osm
 from app.models import Project
+from app.services.buildings import natural_key
 
 log = logging.getLogger(__name__)
 
@@ -59,7 +62,12 @@ def _get(request: urllib.request.Request) -> bytes:
 def _download(bbox: tuple[float, float, float, float]) -> bytes:
     """OSM XML with named highways in the bbox: Overpass servers first, then the main API for small areas."""
     s, w, n, e = bbox
-    query = f'[out:xml][timeout:25];way["highway"]["name"]({s},{w},{n},{e});(._;>;);out body;'
+    bbox_q = f"({s},{w},{n},{e})"
+    # Named streets + every element with a house number (the numbers shown on the OSM map), with their nodes.
+    query = (
+        f'[out:xml][timeout:25];(way["highway"]["name"]{bbox_q};node["addr:housenumber"]{bbox_q};'
+        f'way["addr:housenumber"]{bbox_q};);(._;>;);out body;'
+    )
     settings = get_settings()
     failures: list[str] = []
     for url in settings.osm_overpass_urls:
@@ -83,7 +91,7 @@ def _download(bbox: tuple[float, float, float, float]) -> bytes:
 
 
 def _cache_path(project: Project) -> Path:
-    return storage.project_dir(project.id) / f"osm-streets-{project.boundary_file_id}.xml"
+    return storage.project_dir(project.id) / f"osm-v2-{project.boundary_file_id}.xml"  # v2: streets + addresses
 
 
 def _osm_xml(project: Project, boundary: BaseGeometry) -> bytes:
@@ -149,26 +157,107 @@ def streets_in_boundary(project: Project) -> list[StreetRow]:
     return sorted(rows.values(), key=lambda r: (-r.length_m, r.name_ar))
 
 
-def to_xlsx(project: Project) -> bytes:
-    rows = streets_in_boundary(project)
-    wb = Workbook()
-    ws = wb.active
-    assert ws is not None
-    ws.title = "Streets"
-    ws.append(["Street (Arabic)", "Street (English)", "Type", "Length in boundary (m)", "OSM segments"])
+@dataclass
+class AddressRow:
+    street_ar: str | None
+    street_en: str | None
+    housenumber: str
+    district: str | None
+    postcode: str | None
+    lat: float
+    lon: float
+    street_source: str | None  # "OpenStreetMap address" | "nearest OSM street" | None
+
+
+def addresses_in_boundary(project: Project) -> list[AddressRow]:
+    """OSM house numbers inside the boundary, with their street (the address's own, else the nearest street)."""
+    if project.boundary is None:
+        raise ConflictError("Upload the project KML first: addresses are taken inside the project boundary.")
+    boundary = to_shape(project.boundary)
+    xml = _osm_xml(project, boundary)
+    finder = StreetFinder(osm.parse(xml))
+    rows: list[AddressRow] = []
+    for a in osm.parse_addresses(xml):
+        if not boundary.covers(a.point):
+            continue
+        street_ar, street_en, source = a.street_ar, a.street_en, "OpenStreetMap address" if a.street_ar else None
+        if not street_ar and (nearest := finder.nearest(a.point)):
+            street_ar, street_en, source = nearest.name_ar, nearest.name_en, "nearest OSM street"
+        rows.append(
+            AddressRow(
+                street_ar,
+                street_en,
+                a.housenumber,
+                a.district,
+                a.postcode,
+                round(a.point.y, 7),
+                round(a.point.x, 7),
+                source,
+            )
+        )
+    return sorted(rows, key=lambda r: (r.street_ar or "~", natural_key(r.housenumber)))
+
+
+def _header(ws: Worksheet, titles: list[str], widths: list[int]) -> None:
+    ws.append(titles)
     for cell in ws[1]:
         cell.font = Font(bold=True)
-    for r in rows:
-        ws.append([r.name_ar, r.name_en, ", ".join(sorted(r.types)), round(r.length_m, 1), r.segments])
-    for col, width in zip("ABCDE", (40, 40, 22, 22, 14), strict=True):
-        ws.column_dimensions[col].width = width
+    for i, width in enumerate(widths, start=1):
+        ws.column_dimensions[get_column_letter(i)].width = width
     ws.freeze_panes = "A2"
+
+
+def to_xlsx(project: Project) -> bytes:
+    """Sheets: Addresses (house numbers + street), Streets (names + length), Source (attribution)."""
+    rows = streets_in_boundary(project)
+    addresses = addresses_in_boundary(project)
+    wb = Workbook()
+    addr = wb.active
+    assert addr is not None
+    addr.title = "Addresses"
+    _header(
+        addr,
+        [
+            "Street (Arabic)",
+            "Street (English)",
+            "House number",
+            "District",
+            "Postcode",
+            "Latitude",
+            "Longitude",
+            "Street from",
+        ],
+        [34, 34, 14, 26, 11, 13, 13, 22],
+    )
+    for a in addresses:
+        addr.append([a.street_ar, a.street_en, a.housenumber, a.district, a.postcode, a.lat, a.lon, a.street_source])
+
+    ws = wb.create_sheet("Streets")
+    _header(
+        ws,
+        ["Street (Arabic)", "Street (English)", "Type", "Length in boundary (m)", "OSM segments", "House numbers"],
+        [40, 40, 22, 22, 14, 15],
+    )
+    numbers = Counter(a.street_ar for a in addresses)
+    for r in rows:
+        ws.append(
+            [
+                r.name_ar,
+                r.name_en,
+                ", ".join(sorted(r.types)),
+                round(r.length_m, 1),
+                r.segments,
+                numbers.get(r.name_ar, 0),
+            ]
+        )
 
     info = wb.create_sheet("Source")
     info.append(["Source", ATTRIBUTION])
     info.append(["Project", project.name])
+    info.append(["House numbers", len(addresses)])
     info.append(["Streets", len(rows)])
-    info.append(["Area", "Named streets (OSM highway with a name) clipped to the project boundary"])
+    info.append(["Area", "OSM house numbers and named streets inside the project boundary"])
+    info.append(["Note", "House numbers are street numbers (Building Number), not the drawing's Building IDs"])
     fetched = datetime.fromtimestamp(_cache_path(project).stat().st_mtime, UTC)
     info.append(["Downloaded", fetched.strftime("%Y-%m-%d")])
     info.column_dimensions["A"].width = 14
