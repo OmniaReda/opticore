@@ -33,3 +33,9 @@ export type { GetValidation$Params as GetValidation$Params } from './fn/validati
 export { getValidation as getValidation } from './fn/validation/get-validation';
 export type { ExportValidation$Params as ExportValidation$Params } from './fn/validation/export-validation';
 export { exportValidation as exportValidation } from './fn/validation/export-validation';
+export type { ExportKmz$Params as ExportKmz$Params } from './fn/exports/export-kmz';
+export { exportKmz as exportKmz } from './fn/exports/export-kmz';
+export type { ExportXlsx$Params as ExportXlsx$Params } from './fn/exports/export-xlsx';
+export { exportXlsx as exportXlsx } from './fn/exports/export-xlsx';
+export type { ExportDxf$Params as ExportDxf$Params } from './fn/exports/export-dxf';
+export { exportDxf as exportDxf } from './fn/exports/export-dxf';

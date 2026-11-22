@@ -661,6 +661,126 @@
           }
         }
       }
+    },
+    "/projects/{project_id}/export/kmz": {
+      "get": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Export Kmz",
+        "description": "Boundary + buildings (coloured by review status, with IDs and survey users) for Google Earth.",
+        "operationId": "export_kmz",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/vnd.google-earth.kmz": {}
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{project_id}/export/xlsx": {
+      "get": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Export Xlsx",
+        "description": "One row per building: IDs, review status, area, location, survey data.",
+        "operationId": "export_xlsx",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{project_id}/export/dxf": {
+      "get": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Export Dxf",
+        "description": "Boundary + buildings + Building IDs in UTM 36N metres, one layer per review status (AutoCAD).",
+        "operationId": "export_dxf",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/dxf": {}
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
