@@ -26,6 +26,12 @@
       @if (store.layers()?.features?.length; as count) {
         <span class="small text-muted">· {{ count }} imported features</span>
       }
+      <span class="small text-muted ms-2">Export:</span>
+      @for (e of exports(); track e.label) {
+        <a class="btn btn-sm btn-outline-secondary py-0" [href]="e.url" [title]="e.title" download>
+          {{ e.label }}
+        </a>
+      }
     </div>
     <app-project-map
       [layers]="store.layers()"

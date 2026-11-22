@@ -1,8 +1,9 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, effect, inject, input, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { filter, switchMap } from 'rxjs';
 
+import { ApiConfiguration } from '../../../api/api-configuration';
 import { GeoJsonGeometry } from '../../../api/models/geo-json-geometry';
 import { ProjectFileRead } from '../../../api/models/project-file-read';
 import { ProjectRead } from '../../../api/models/project-read';
@@ -42,6 +43,17 @@ export class ProjectDetail {
 
   /** Bound from the `:id` route param. */
   readonly id = input.required<string>();
+
+  private readonly rootUrl = inject(ApiConfiguration).rootUrl;
+  /** Download links (boundary + buildings + IDs + survey users). */
+  protected readonly exports = computed(() => {
+    const base = `${this.rootUrl}/projects/${this.id()}/export`;
+    return [
+      { label: 'KMZ', url: `${base}/kmz`, title: 'Google Earth' },
+      { label: 'Excel', url: `${base}/xlsx`, title: 'One row per building' },
+      { label: 'DXF', url: `${base}/dxf`, title: 'AutoCAD, UTM 36N metres' },
+    ];
+  });
 
   /** Review categories shown on the map. */
   protected readonly visible = signal<ReadonlySet<BuildingReviewKey>>(
