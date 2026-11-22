@@ -12,6 +12,7 @@ Output GeoJSON is in EPSG:4326. Each feature has:
     building_ids: list of IDs found inside the polygon
     area_m2: area measured in EPSG:32636
 """
+
 from __future__ import annotations
 
 import argparse
@@ -19,18 +20,19 @@ import json
 import sys
 from collections import defaultdict
 from pathlib import Path
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
 
-from pyproj import Transformer  # noqa: E402
-from shapely.geometry import mapping  # noqa: E402
-from shapely.ops import transform  # noqa: E402
+from pyproj import Transformer
+from shapely.geometry import mapping
+from shapely.ops import transform
 
-from app import rules  # noqa: E402
-from app.importers import cad  # noqa: E402
+from app import rules
+from app.importers import cad
 
 
-def to_geojson(result: cad.CadBuildings) -> dict:
+def to_geojson(result: cad.CadBuildings) -> dict[str, Any]:
     to_wgs = Transformer.from_crs(32636, 4326, always_xy=True).transform
     ids_by_poly: dict[int, list[str]] = defaultdict(list)
     for lab in result.labels:
@@ -40,12 +42,22 @@ def to_geojson(result: cad.CadBuildings) -> dict:
     for i, p in enumerate(result.polygons):
         ids = ids_by_poly.get(i, [])
         status = "ok" if len(ids) == 1 else ("no_id" if not ids else "multiple_ids")
-        features.append({"type": "Feature", "geometry": mapping(transform(to_wgs, p)),
-                         "properties": {"status": status, "building_ids": ids, "area_m2": round(p.area, 1)}})
+        features.append(
+            {
+                "type": "Feature",
+                "geometry": mapping(transform(to_wgs, p)),
+                "properties": {"status": status, "building_ids": ids, "area_m2": round(p.area, 1)},
+            }
+        )
     for lab in result.labels:
         if lab.building_index is None:
-            features.append({"type": "Feature", "geometry": mapping(transform(to_wgs, lab.point)),
-                             "properties": {"status": "id_outside_polygon", "building_ids": [lab.building_id]}})
+            features.append(
+                {
+                    "type": "Feature",
+                    "geometry": mapping(transform(to_wgs, lab.point)),
+                    "properties": {"status": "id_outside_polygon", "building_ids": [lab.building_id]},
+                }
+            )
     return {"type": "FeatureCollection", "features": features}
 
 
@@ -68,7 +80,7 @@ def main() -> None:
     print(f"IDs outside any polygon: {sum(lab.building_index is None for lab in result.labels)}")
 
     if args.out:
-        with open(args.out, "w", encoding="utf-8") as f:
+        with Path(args.out).open("w", encoding="utf-8") as f:
             json.dump(to_geojson(result), f, ensure_ascii=False)
         print(f"written {args.out}")
 

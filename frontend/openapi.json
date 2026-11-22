@@ -5,6 +5,38 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health",
+        "description": "Liveness + database check.",
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database not reachable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/projects": {
       "get": {
         "tags": [
@@ -248,6 +280,7 @@
           "files"
         ],
         "summary": "Upload File",
+        "description": "Store the file; KML/KMZ/DXF/DWG are then imported in the background (status `processing`).",
         "operationId": "upload_file",
         "parameters": [
           {
@@ -305,16 +338,6 @@
         "operationId": "process_file",
         "parameters": [
           {
-            "name": "project_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Project Id"
-            }
-          },
-          {
             "name": "file_id",
             "in": "path",
             "required": true,
@@ -322,6 +345,16 @@
               "type": "string",
               "format": "uuid",
               "title": "File Id"
+            }
+          },
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
             }
           }
         ],
@@ -476,31 +509,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/health": {
-      "get": {
-        "tags": [
-          "health"
-        ],
-        "summary": "Health",
-        "operationId": "health",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": {
-                    "type": "string"
-                  },
-                  "type": "object",
-                  "title": "Response Health"
                 }
               }
             }
@@ -849,6 +857,32 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "Health": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "error"
+            ],
+            "title": "Status"
+          },
+          "database": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "unreachable"
+            ],
+            "title": "Database"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "database"
+        ],
+        "title": "Health"
+      },
       "OrphanLabelRead": {
         "properties": {
           "id": {
@@ -1104,7 +1138,7 @@
         },
         "type": "object",
         "title": "ProjectUpdate",
-        "description": "Partial update: only fields that are sent are changed."
+        "description": "Partial update: only fields that are sent are changed. name / status may be omitted, not null."
       },
       "ValidationError": {
         "properties": {

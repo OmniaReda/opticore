@@ -3,10 +3,11 @@
 Every rules file must say where its values come from (`source`), who approved them (`approved_by`)
 and whether they are confirmed (`status: approved`) or still provisional (`status: TBC`).
 """
+
 import re
 from functools import lru_cache
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal, cast
 
 import yaml
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
@@ -53,9 +54,9 @@ class CadLayerRules(RulesFile):
     profiles: list[CadProfile] = Field(min_length=1)
 
 
-def _load(name: str) -> dict:
-    with open(RULES_DIR / name, encoding="utf-8") as f:
-        return yaml.safe_load(f)
+def _load(name: str) -> dict[str, Any]:
+    with (RULES_DIR / name).open(encoding="utf-8") as f:
+        return cast(dict[str, Any], yaml.safe_load(f))
 
 
 @lru_cache

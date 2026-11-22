@@ -60,10 +60,11 @@ data/      LOCAL ONLY — customer files (DWG/KML/PDF/Excel). Git-ignored. Never
 ## Commands
 ```bash
 docker compose up -d db                       # PostGIS on localhost:5432
-cd backend && python -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt
+cd backend && python -m venv .venv && . .venv/bin/activate && pip install -r requirements-dev.txt
 alembic upgrade head                          # apply DB migrations
 uvicorn app.main:app --reload                 # API on :8000, docs on /docs
-pytest                                        # backend tests (real PostGIS, DB "opticore_test")
+pytest                                        # backend tests (real PostGIS, DB "opticore_test"); add --cov for coverage
+ruff check . && ruff format --check . && mypy app tests scripts ../tools   # backend lint + strict types
 python tools/extract_buildings.py data/<file>.dxf   # building extraction prototype
 cd frontend && npm start                      # Angular on :4200, proxies /api → :8000
 npm run api                                   # regenerate src/app/api from FastAPI OpenAPI (never edit by hand)
@@ -78,7 +79,13 @@ npm test -- --watch=false; npm run lint; npm run format   # frontend unit tests,
 5. Pin dependencies; check licences allow commercial use (avoid GPL in shipped code; LibreDWG is GPL → use only as an external CLI converter, never linked/bundled).
 6. Mock/sample data must be clearly labelled; never present mock output as real CAD/GIS processing.
 7. Engineering rules live in config (`backend/app/rules/*.yaml`), each with `source`, `approved_by`, `status: TBC|approved`.
-8. Frontend: Angular style — standalone components, typed reactive forms, services + RxJS, no `any`. Conventions (enforced by `npm run lint`):
+8. Backend: FastAPI style (enforced by `ruff` + `mypy --strict`):
+   - Layers: `app/api/routes/*` (thin: parse input, call a service, return a schema) → `app/services/*` (logic, DB, commit) → `app/importers/*` (file parsing, no DB).
+   - Path objects come from dependencies in `app/api/deps.py` (`ProjectDep`, `ProjectFileDep`, `DbSession`).
+   - Services raise domain errors from `app/errors.py` (`NotFoundError`, `ConflictError`, …), never `HTTPException`. The handler returns `{"detail": ...}`.
+   - Responses are typed by the route's return annotation (Pydantic schema); enums are `StrEnum`; ORM columns are `Mapped[...]`.
+   - Runtime deps in `requirements.txt`, tools in `requirements-dev.txt`, all pinned.
+9. Frontend: Angular style — standalone components, typed reactive forms, services + RxJS, no `any`. Conventions (enforced by `npm run lint`):
    - Angular v20+ file names without type suffix: `project-list.ts` → class `ProjectList`; one folder per component (`.ts` + `.html` when the template is long).
    - Features under `features/<name>/` with their own `<name>.routes.ts` (lazy); shared UI in `shared/`.
    - Page state in a component-provided store (`*-store.ts`: signals + `rxResource` for loading, methods for actions); child components are presentational (`input()` / `output()` / `model()`).

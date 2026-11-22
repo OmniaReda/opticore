@@ -1,4 +1,7 @@
 """KML/KMZ upload → background processing → boundary + features on the project map."""
+
+from typing import Any
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -9,14 +12,14 @@ def new_project(client: TestClient) -> str:
     return client.post("/projects", json={"name": "مشروع تجريبي"}).json()["id"]
 
 
-def upload(client: TestClient, pid: str, name: str, content: bytes) -> dict:
+def upload(client: TestClient, pid: str, name: str, content: bytes) -> dict[str, Any]:
     r = client.post(f"/projects/{pid}/files", files={"file": (name, content)})
     assert r.status_code == 201, r.text
     assert r.json()["status"] == "processing"  # response is sent before the background job runs
     return r.json()
 
 
-def file_state(client: TestClient, pid: str, fid: str) -> dict:
+def file_state(client: TestClient, pid: str, fid: str) -> dict[str, Any]:
     return next(f for f in client.get(f"/projects/{pid}/files").json() if f["id"] == fid)
 
 
@@ -64,11 +67,14 @@ def test_file_without_polygon_keeps_boundary(client: TestClient) -> None:
     assert sorted(x["geometry"]["type"] for x in layers["features"]) == ["LineString", "LineString", "Point"]
 
 
-@pytest.mark.parametrize("content, message", [
-    (s.INVALID_POLYGON_KML, "is invalid"),
-    (s.EMPTY_KML, "No geometry"),
-    (b"<html>oops</html>", "root element is not <kml>"),
-])
+@pytest.mark.parametrize(
+    "content, message",
+    [
+        (s.INVALID_POLYGON_KML, "is invalid"),
+        (s.EMPTY_KML, "No geometry"),
+        (b"<html>oops</html>", "root element is not <kml>"),
+    ],
+)
 def test_bad_files_fail_with_reason(client: TestClient, content: bytes, message: str) -> None:
     pid = new_project(client)
     f = upload(client, pid, "bad.kml", content)

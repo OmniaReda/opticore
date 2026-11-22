@@ -6,6 +6,7 @@ Handles both files the Design Team produces:
 
 Styles, LookAt, ExtendedData etc. are ignored. Altitude (Z) is dropped.
 """
+
 from __future__ import annotations
 
 import io
@@ -98,8 +99,7 @@ def _geometries(el: etree._Element, content: KmlContent) -> list[BaseGeometry]:
     elif kind == "Polygon":
         outer = next((_ring(r) for b in _children(el, "outerBoundaryIs") for r in _children(b, "LinearRing")), None)
         if outer:
-            holes = [h for b in _children(el, "innerBoundaryIs") for r in _children(b, "LinearRing")
-                     if (h := _ring(r))]
+            holes = [h for b in _children(el, "innerBoundaryIs") for r in _children(b, "LinearRing") if (h := _ring(r))]
             return [Polygon(outer, holes)]
     else:
         return []

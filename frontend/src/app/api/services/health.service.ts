@@ -11,6 +11,7 @@ import { ApiConfiguration } from '../api-configuration';
 import { StrictHttpResponse } from '../strict-http-response';
 
 import { health } from '../fn/health/health';
+import { Health } from '../models/health';
 import { Health$Params } from '../fn/health/health';
 
 @Injectable({ providedIn: 'root' })
@@ -25,16 +26,14 @@ export class HealthService extends BaseService {
   /**
    * Health.
    *
-   *
+   * Liveness + database check.
    *
    * This method provides access to the full `HttpResponse`, allowing access to response headers.
    * To access only the response body, use `health()` instead.
    *
    * This method doesn't expect any request body.
    */
-  health$Response(params?: Health$Params, context?: HttpContext): Observable<StrictHttpResponse<{
-[key: string]: string;
-}>> {
+  health$Response(params?: Health$Params, context?: HttpContext): Observable<StrictHttpResponse<Health>> {
     const obs = health(this.http, this.rootUrl, params, context);
     return obs;
   }
@@ -42,23 +41,17 @@ export class HealthService extends BaseService {
   /**
    * Health.
    *
-   *
+   * Liveness + database check.
    *
    * This method provides access only to the response body.
    * To access the full response (for headers, for example), `health$Response()` instead.
    *
    * This method doesn't expect any request body.
    */
-  health(params?: Health$Params, context?: HttpContext): Observable<{
-[key: string]: string;
-}> {
+  health(params?: Health$Params, context?: HttpContext): Observable<Health> {
     const resp = this.health$Response(params, context);
     return resp.pipe(
-      map((r: StrictHttpResponse<{
-[key: string]: string;
-}>): {
-[key: string]: string;
-} => r.body)
+      map((r: StrictHttpResponse<Health>): Health => r.body)
     );
   }
 

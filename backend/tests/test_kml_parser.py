@@ -36,12 +36,15 @@ def test_kmz() -> None:
     assert len(c.placemarks) == 2
 
 
-@pytest.mark.parametrize("data, is_kmz, message", [
-    (b"not xml at all", False, "Not a valid KML"),
-    (b"<?xml version='1.0'?><gpx/>", False, "root element is not <kml>"),
-    (s.UTM_COORDS_KML, False, "out of lon/lat range"),
-    (b"PK not really a zip", True, "Not a valid KMZ"),
-])
+@pytest.mark.parametrize(
+    "data, is_kmz, message",
+    [
+        (b"not xml at all", False, "Not a valid KML"),
+        (b"<?xml version='1.0'?><gpx/>", False, "root element is not <kml>"),
+        (s.UTM_COORDS_KML, False, "out of lon/lat range"),
+        (b"PK not really a zip", True, "Not a valid KMZ"),
+    ],
+)
 def test_errors(data: bytes, is_kmz: bool, message: str) -> None:
     with pytest.raises(kml.KmlError, match=message):
         kml.load(data, is_kmz)
@@ -50,10 +53,11 @@ def test_errors(data: bytes, is_kmz: bool, message: str) -> None:
 def test_kmz_without_kml() -> None:
     import io
     import zipfile
+
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w") as zf:
         zf.writestr("image.png", b"x")
-    with pytest.raises(kml.KmlError, match="no .kml"):
+    with pytest.raises(kml.KmlError, match=r"no .kml"):
         kml.load(buf.getvalue(), is_kmz=True)
 
 

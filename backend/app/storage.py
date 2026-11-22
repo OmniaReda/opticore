@@ -1,4 +1,5 @@
 """Local file storage for uploaded project files (prototype: disk, not DB/S3)."""
+
 import hashlib
 import shutil
 import uuid
@@ -6,6 +7,7 @@ from pathlib import Path, PurePosixPath
 from typing import BinaryIO
 
 from app.config import get_settings
+from app.errors import FileTooLargeError
 from app.models import FileKind
 
 CHUNK = 1024 * 1024
@@ -20,10 +22,6 @@ EXTENSION_KIND: dict[str, FileKind] = {
 }
 
 
-class FileTooLarge(Exception):
-    pass
-
-
 def kind_for(filename: str) -> FileKind | None:
     return EXTENSION_KIND.get(Path(filename).suffix.lower())
 
@@ -34,11 +32,13 @@ def project_dir(project_id: uuid.UUID) -> Path:
 
 def save(src: BinaryIO, project_id: uuid.UUID, file_id: uuid.UUID, filename: str) -> tuple[str, int, str]:
     """Stream src to disk. Returns (relative stored path, size in bytes, sha256 hex).
+    Raises FileTooLargeError above the configured limit (nothing is left on disk).
 
     The stored name is the file id + original extension, so Arabic / unsafe
     original names never reach the filesystem.
     """
-    max_bytes = get_settings().max_upload_mb * 1024 * 1024
+    max_mb = get_settings().max_upload_mb
+    max_bytes = max_mb * 1024 * 1024
     rel = PurePosixPath("projects", str(project_id), f"{file_id}{Path(filename).suffix.lower()}")
     dest = get_settings().storage_dir / rel
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -49,7 +49,7 @@ def save(src: BinaryIO, project_id: uuid.UUID, file_id: uuid.UUID, filename: str
             while chunk := src.read(CHUNK):
                 size += len(chunk)
                 if size > max_bytes:
-                    raise FileTooLarge
+                    raise FileTooLargeError(f"File exceeds {max_mb} MB")
                 digest.update(chunk)
                 out.write(chunk)
     except BaseException:

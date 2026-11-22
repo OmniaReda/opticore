@@ -16,10 +16,11 @@ docker compose up -d db                       # PostGIS on localhost:5432
 
 cd backend
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt                 # runtime + test/lint tools
 alembic upgrade head                          # create / update DB schema
 uvicorn app.main:app --reload                 # API on :8000, docs on /docs
 pytest                                        # uses its own DB "opticore_test"
+ruff check . && mypy app tests scripts ../tools    # lint + strict type check
 
 cd ../frontend
 npm install

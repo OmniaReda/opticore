@@ -4,7 +4,7 @@
 import { ProjectStatus } from '../models/project-status';
 
 /**
- * Partial update: only fields that are sent are changed.
+ * Partial update: only fields that are sent are changed. name / status may be omitted, not null.
  */
 export interface ProjectUpdate {
   description?: (string | null);

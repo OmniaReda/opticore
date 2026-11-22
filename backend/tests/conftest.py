@@ -1,5 +1,6 @@
 """Tests run against a real PostGIS database `opticore_test` (created automatically)
 on the docker-compose server. Start it first: `docker compose up -d db`."""
+
 import os
 import tempfile
 from collections.abc import Iterator
@@ -14,11 +15,11 @@ os.environ["OPTICORE_DATABASE_URL"] = f"postgresql+psycopg://{SERVER}/{TEST_DB}"
 os.environ["OPTICORE_STORAGE_DIR"] = tempfile.mkdtemp(prefix="opticore-test-storage-")
 os.environ["OPTICORE_MAX_UPLOAD_MB"] = "1"
 
-from alembic import command  # noqa: E402
 from alembic.config import Config  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy import text  # noqa: E402
 
+from alembic import command  # noqa: E402
 from app.config import get_settings  # noqa: E402
 from app.db import get_engine  # noqa: E402
 from app.main import app  # noqa: E402

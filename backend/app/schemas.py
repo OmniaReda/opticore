@@ -1,9 +1,9 @@
 import enum
 import uuid
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Annotated, Any, Self
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 from app.models import FileKind, FileStatus, ProjectStatus
 
@@ -16,11 +16,18 @@ class ProjectCreate(BaseModel):
 
 
 class ProjectUpdate(BaseModel):
-    """Partial update: only fields that are sent are changed."""
+    """Partial update: only fields that are sent are changed. name / status may be omitted, not null."""
 
     name: ProjectName | None = None
     description: str | None = None
     status: ProjectStatus | None = None
+
+    @model_validator(mode="after")
+    def _no_null_required_fields(self) -> Self:
+        for field in ("name", "status"):
+            if field in self.model_fields_set and getattr(self, field) is None:
+                raise ValueError(f"{field} cannot be null")
+        return self
 
 
 class ProjectFileRead(BaseModel):
@@ -78,13 +85,13 @@ class ProjectRead(BaseModel):
     updated_at: datetime
 
 
-class BuildingStatus(str, enum.Enum):
+class BuildingStatus(enum.StrEnum):
     ok = "ok"  # exactly one Building ID inside
     multiple_ids = "multiple_ids"  # several IDs → probably a missing dividing line
     no_id = "no_id"  # courtyard, gap, or building without a label
 
 
-class BoundaryPosition(str, enum.Enum):
+class BoundaryPosition(enum.StrEnum):
     inside = "inside"
     crossing = "crossing"
     outside = "outside"
