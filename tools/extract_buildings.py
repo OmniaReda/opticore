@@ -1,10 +1,10 @@
 """Prototype: extract building polygons + Building IDs from a Design Team DXF.
 
 Usage:
-    python tools/extract_buildings.py data/amiriya.dxf [--out data/amiriya_buildings.geojson] [--png data/report.png]
+    python tools/extract_buildings.py data/<project>.dxf [--out data/<project>_buildings.geojson]
 
 DWG files must be converted to DXF first, e.g. with LibreDWG:
-    dwg2dxf -y -o data/amiriya.dxf "data/CAD الاميرية V1 11-10.dwg"
+    dwg2dxf -y -o data/<project>.dxf "data/<project>.dwg"
 
 Output GeoJSON is in EPSG:4326. Each feature has:
     status: "ok" | "multiple_ids" | "no_id"
