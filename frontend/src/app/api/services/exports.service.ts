@@ -14,6 +14,8 @@ import { exportDxf } from '../fn/exports/export-dxf';
 import { ExportDxf$Params } from '../fn/exports/export-dxf';
 import { exportKmz } from '../fn/exports/export-kmz';
 import { ExportKmz$Params } from '../fn/exports/export-kmz';
+import { exportStreets } from '../fn/exports/export-streets';
+import { ExportStreets$Params } from '../fn/exports/export-streets';
 import { exportXlsx } from '../fn/exports/export-xlsx';
 import { ExportXlsx$Params } from '../fn/exports/export-xlsx';
 
@@ -123,6 +125,41 @@ export class ExportsService extends BaseService {
    */
   exportDxf(params: ExportDxf$Params, context?: HttpContext): Observable<any> {
     const resp = this.exportDxf$Response(params, context);
+    return resp.pipe(
+      map((r: StrictHttpResponse<any>): any => r.body)
+    );
+  }
+
+  /** Path part for operation `exportStreets()` */
+  static readonly ExportStreetsPath = '/projects/{project_id}/export/streets';
+
+  /**
+   * Export Streets.
+   *
+   * Named streets inside the project boundary with their OpenStreetMap names (Arabic / English) and length.
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `exportStreets()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  exportStreets$Response(params: ExportStreets$Params, context?: HttpContext): Observable<StrictHttpResponse<any>> {
+    const obs = exportStreets(this.http, this.rootUrl, params, context);
+    return obs;
+  }
+
+  /**
+   * Export Streets.
+   *
+   * Named streets inside the project boundary with their OpenStreetMap names (Arabic / English) and length.
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `exportStreets$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  exportStreets(params: ExportStreets$Params, context?: HttpContext): Observable<any> {
+    const resp = this.exportStreets$Response(params, context);
     return resp.pipe(
       map((r: StrictHttpResponse<any>): any => r.body)
     );

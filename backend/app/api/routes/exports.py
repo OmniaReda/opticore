@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from fastapi.responses import Response
 
 from app.api.deps import DbSession, ProjectDep
-from app.services import exports
+from app.services import exports, streets
 
 router = APIRouter(prefix="/projects/{project_id}/export", tags=["exports"])
 
@@ -32,3 +32,13 @@ def export_xlsx(project: ProjectDep, db: DbSession) -> Response:
 def export_dxf(project: ProjectDep, db: DbSession) -> Response:
     """Boundary + buildings + Building IDs in UTM 36N metres, one layer per review status (AutoCAD)."""
     return _file(exports.to_dxf(db, project), DXF, "project.dxf")
+
+
+@router.get(
+    "/streets",
+    response_class=Response,
+    responses={200: {"content": {XLSX: {}}}, 409: {"description": "No boundary yet"}, 502: {"description": "OSM down"}},
+)
+def export_streets(project: ProjectDep) -> Response:
+    """Named streets inside the project boundary with their OpenStreetMap names (Arabic / English) and length."""
+    return _file(streets.to_xlsx(project), XLSX, "streets.xlsx")

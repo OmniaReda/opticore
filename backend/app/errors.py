@@ -35,6 +35,12 @@ class EmptyFileError(AppError):
     status_code = status.HTTP_400_BAD_REQUEST
 
 
+class ExternalServiceError(AppError):
+    """A service we depend on (e.g. OpenStreetMap) did not answer."""
+
+    status_code = status.HTTP_502_BAD_GATEWAY
+
+
 def _handle_app_error(_request: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, AppError)
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.message})

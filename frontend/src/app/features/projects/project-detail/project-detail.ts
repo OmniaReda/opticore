@@ -48,11 +48,22 @@ export class ProjectDetail {
   /** Download links (boundary + buildings + IDs + survey users). */
   protected readonly exports = computed(() => {
     const base = `${this.rootUrl}/projects/${this.id()}/export`;
-    return [
+    const all = [
       { label: 'KMZ', url: `${base}/kmz`, title: 'Google Earth' },
       { label: 'Excel', url: `${base}/xlsx`, title: 'One row per building' },
       { label: 'DXF', url: `${base}/dxf`, title: 'AutoCAD, UTM 36N metres' },
     ];
+    // Street names come from OpenStreetMap inside the boundary: available right after the first KML.
+    return this.store.layers()?.boundary
+      ? [
+          ...all,
+          {
+            label: 'Streets (Excel)',
+            url: `${base}/streets`,
+            title: 'Street names inside the boundary, from OpenStreetMap',
+          },
+        ]
+      : all;
   });
 
   /** Review categories shown on the map. */
