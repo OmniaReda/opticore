@@ -2,7 +2,7 @@
 -r requirements.txt
 pytest==8.3.4
 pytest-cov==7.1.0
-httpx==0.28.1
+httpx2==2.16.0  # used by starlette.testclient (successor of httpx)
 ruff==0.17.6
 mypy==2.4.1
 types-PyYAML==6.0.12.20250915

@@ -28,7 +28,7 @@ class UnsupportedFileTypeError(AppError):
 
 
 class FileTooLargeError(AppError):
-    status_code = status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+    status_code = status.HTTP_413_CONTENT_TOO_LARGE
 
 
 class EmptyFileError(AppError):
