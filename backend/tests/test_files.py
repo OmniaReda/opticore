@@ -3,7 +3,7 @@ import uuid
 from pathlib import Path
 
 from fastapi.testclient import TestClient
-from httpx import Response
+from httpx2 import Response
 
 KML = b'<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"/>'
 

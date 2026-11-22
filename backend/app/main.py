@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 
+from app import openapi
 from app.api.router import api_router
 from app.config import get_settings
 from app.db import get_engine
@@ -43,6 +44,7 @@ def create_app() -> FastAPI:
     )
     register_exception_handlers(app)
     app.include_router(api_router)
+    openapi.install(app)
     return app
 
 
