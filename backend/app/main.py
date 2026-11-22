@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 
 from app.config import get_settings
-from app.routers import files, layers, projects
+from app.routers import buildings, files, layers, projects
 
 
 def _operation_id(route: APIRoute) -> str:
@@ -23,6 +23,7 @@ app.add_middleware(
 app.include_router(projects.router)
 app.include_router(files.router)
 app.include_router(layers.router)
+app.include_router(buildings.router)
 
 
 @app.get("/health", tags=["health"])

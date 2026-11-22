@@ -46,7 +46,7 @@ def database() -> Iterator[None]:
 def clean_tables() -> Iterator[None]:
     yield
     with get_engine().begin() as conn:
-        conn.execute(text("TRUNCATE project_feature, project_file, project CASCADE"))
+        conn.execute(text("TRUNCATE building_label, building, project_feature, project_file, project CASCADE"))
 
 
 @pytest.fixture

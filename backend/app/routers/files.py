@@ -11,7 +11,7 @@ from app.db import get_db
 from app.models import FileStatus, Project, ProjectFile
 from app.routers.projects import get_project_or_404
 from app.schemas import ProjectFileRead
-from app.services import kml_import
+from app.services import processing
 
 router = APIRouter(prefix="/projects/{project_id}/files", tags=["files"])
 
@@ -26,10 +26,10 @@ def _get_file_or_404(db: Session, project_id: uuid.UUID, file_id: uuid.UUID) -> 
 
 
 def _schedule_processing(record: ProjectFile, tasks: BackgroundTasks) -> None:
-    """Queue automatic processing for file kinds that have an importer (KML/KMZ for now)."""
-    if record.kind in kml_import.KML_KINDS:
+    """Queue automatic processing for file kinds that have an importer."""
+    if processing.has_importer(record.kind):
         record.status, record.error, record.note = FileStatus.processing, None, None
-        tasks.add_task(kml_import.process_file, record.id)
+        tasks.add_task(processing.process_file, record.id)
 
 
 @router.get("", response_model=list[ProjectFileRead])
@@ -78,7 +78,7 @@ def process_file(project_id: uuid.UUID, file_id: uuid.UUID, db: Db, tasks: Backg
     """Re-run processing of a file (e.g. after a failure or an importer update)."""
     get_project_or_404(db, project_id)
     record = _get_file_or_404(db, project_id, file_id)
-    if record.kind not in kml_import.KML_KINDS:
+    if not processing.has_importer(record.kind):
         raise HTTPException(status.HTTP_409_CONFLICT, f"No importer for '{record.kind.value}' files yet")
     if record.status == FileStatus.processing:
         raise HTTPException(status.HTTP_409_CONFLICT, "File is already being processed")

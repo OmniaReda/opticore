@@ -1,3 +1,4 @@
+import enum
 import uuid
 from datetime import datetime
 from typing import Annotated, Any
@@ -75,3 +76,51 @@ class ProjectRead(BaseModel):
     has_boundary: bool
     created_at: datetime
     updated_at: datetime
+
+
+class BuildingStatus(str, enum.Enum):
+    ok = "ok"  # exactly one Building ID inside
+    multiple_ids = "multiple_ids"  # several IDs → probably a missing dividing line
+    no_id = "no_id"  # courtyard, gap, or building without a label
+
+
+class BoundaryPosition(str, enum.Enum):
+    inside = "inside"
+    crossing = "crossing"
+    outside = "outside"
+
+
+class BuildingRead(BaseModel):
+    id: uuid.UUID
+    codes: list[str] = Field(description="Building IDs whose label lies inside this polygon")
+    status: BuildingStatus
+    boundary_position: BoundaryPosition | None = Field(description="None when the project has no boundary")
+    area_m2: float = Field(description="Measured in EPSG:32636 (UTM 36N)")
+    geometry: GeoJsonGeometry
+
+
+class OrphanLabelRead(BaseModel):
+    """A Building ID label that is not inside any building polygon."""
+
+    id: uuid.UUID
+    code: str
+    geometry: GeoJsonGeometry
+
+
+class BuildingSummary(BaseModel):
+    total: int
+    ok: int
+    multiple_ids: int
+    no_id: int
+    orphan_ids: int
+    inside: int | None
+    crossing: int | None
+    outside: int | None
+
+
+class BuildingLayer(BaseModel):
+    source_file_id: uuid.UUID | None = Field(description="Drawing the buildings were imported from")
+    provisional: bool = Field(description="True while the CAD reading rules are not approved (status TBC)")
+    summary: BuildingSummary
+    buildings: list[BuildingRead]
+    orphan_labels: list[OrphanLabelRead]

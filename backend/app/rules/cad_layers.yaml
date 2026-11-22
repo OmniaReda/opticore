@@ -1,0 +1,25 @@
+# How to read buildings and Building IDs from Design Team CAD drawings (DXF / DWG).
+# Layer names differ between drawing versions, so each profile describes one known convention.
+# On import, the FIRST profile whose layers all exist in the drawing is used.
+source: "Analysis of the Stage 01 base drawing (V1) and Stage 03 validated drawing (V3) of the test region — see docs/03"
+approved_by: null
+status: TBC
+
+# Polygons smaller than this are treated as drawing noise (slivers between lines), not buildings.
+# Prototype value, NOT confirmed by the Design Team.
+min_building_area_m2: 5
+
+profiles:
+  - name: validated_drawing
+    description: "Stage 03 validated drawing: buildings on 'Building', final IDs (e.g. 12, 12-2) on 'Serial HomeNEW'"
+    building_layer: "Building"
+    id_layer: "Serial HomeNEW"
+    # Group 1 = the Building ID as written in the survey Excel.
+    id_pattern: '^\s*(\d+(?:-\d+)*)\s*$'
+
+  - name: base_drawing
+    description: "Stage 01 base drawing: buildings on 'مناطق سكنيه', IDs written as 'ERA <n>' on 'Serial Home'"
+    building_layer: "مناطق سكنيه"
+    id_layer: "Serial Home"
+    # 'ERA' is the survey company prefix, not part of the ID: 'ERA 12' → '12'.
+    id_pattern: '^\s*(?:ERA\s*)?(\d+)\s*$'

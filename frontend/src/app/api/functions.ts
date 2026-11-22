@@ -21,5 +21,7 @@ export type { DeleteFile$Params as DeleteFile$Params } from './fn/files/delete-f
 export { deleteFile as deleteFile } from './fn/files/delete-file';
 export type { GetLayers$Params as GetLayers$Params } from './fn/layers/get-layers';
 export { getLayers as getLayers } from './fn/layers/get-layers';
+export type { GetBuildings$Params as GetBuildings$Params } from './fn/buildings/get-buildings';
+export { getBuildings as getBuildings } from './fn/buildings/get-buildings';
 export type { Health$Params as Health$Params } from './fn/health/health';
 export { health as health } from './fn/health/health';

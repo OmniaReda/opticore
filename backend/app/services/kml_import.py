@@ -1,6 +1,4 @@
 """Process an uploaded KML/KMZ: Polygon placemarks → project boundary, everything else → project features."""
-import logging
-import uuid
 from collections import Counter
 
 from geoalchemy2.shape import from_shape
@@ -11,11 +9,8 @@ from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from app import geo, storage
-from app.db import get_sessionmaker
 from app.importers import kml
-from app.models import FileKind, FileStatus, Project, ProjectFeature, ProjectFile
-
-log = logging.getLogger(__name__)
+from app.models import FileKind, Project, ProjectFeature, ProjectFile
 
 KML_KINDS = {FileKind.kml, FileKind.kmz}
 
@@ -68,22 +63,3 @@ def import_kml(db: Session, record: ProjectFile) -> str:
         parts.append(f"{content.skipped} empty/degenerate geometries skipped")
     return " · ".join(parts)
 
-
-def process_file(file_id: uuid.UUID) -> None:
-    """Background job: process one uploaded KML/KMZ and record the outcome on the file."""
-    with get_sessionmaker()() as db:
-        record = db.get(ProjectFile, file_id)
-        if record is None or record.kind not in KML_KINDS:
-            return
-        try:
-            note = import_kml(db, record)
-            record.status, record.error, record.note = FileStatus.processed, None, note
-            db.commit()
-        except Exception as e:  # noqa: BLE001 — any failure must end up visible on the file
-            db.rollback()
-            if not isinstance(e, kml.KmlError):
-                log.exception("KML import failed for file %s", file_id)
-            record = db.get_one(ProjectFile, file_id)
-            message = str(e) if isinstance(e, kml.KmlError) else f"Unexpected error while importing: {e}"
-            record.status, record.error, record.note = FileStatus.failed, message, None
-            db.commit()

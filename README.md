@@ -27,4 +27,16 @@ npm start                                     # http://localhost:4200 (proxies /
 npm run api                                   # regenerate the typed API client after backend API changes
 ```
 
+### DWG support (optional)
+DWG drawings are converted to DXF with LibreDWG's `dwg2dxf`, run as a separate program (GPL, never bundled; see [`docs/adr/0001-dwg-conversion.md`](docs/adr/0001-dwg-conversion.md)).
+Download `libredwg-0.14-win64.zip` from the [LibreDWG 0.14 release](https://github.com/LibreDWG/libredwg/releases/tag/0.14), unzip it, and point the backend at it, e.g. in `backend/.env`:
+
+```
+OPTICORE_DWG2DXF_PATH=C:\Users\<you>\AppData\Local\Programs\libredwg-0.14\dwg2dxf.exe
+```
+
+Without it, DXF uploads still work. DWG uploads fail with a message asking for a DXF.
+
+CAD layer names and the Building ID format are configured in [`backend/app/rules/cad_layers.yaml`](backend/app/rules/cad_layers.yaml).
+
 Put customer files in `data/` (git-ignored). Uploaded files are stored in `backend/storage/` (git-ignored).

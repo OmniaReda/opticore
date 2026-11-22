@@ -17,10 +17,12 @@ import {
   timer,
 } from 'rxjs';
 
+import { BuildingLayer } from '../../api/models/building-layer';
 import { FileKind } from '../../api/models/file-kind';
 import { ProjectFileRead } from '../../api/models/project-file-read';
 import { ProjectLayers } from '../../api/models/project-layers';
 import { ProjectRead } from '../../api/models/project-read';
+import { BuildingsService } from '../../api/services/buildings.service';
 import { FilesService } from '../../api/services/files.service';
 import { LayersService } from '../../api/services/layers.service';
 import { ProjectsService } from '../../api/services/projects.service';
@@ -29,6 +31,10 @@ import { confirmDialog } from '../../shared/confirm-dialog.component';
 import { FileSizePipe } from '../../shared/file-size.pipe';
 import {
   ACCEPTED_FILE_TYPES,
+  BUILDING_REVIEW_COLOR,
+  BUILDING_REVIEW_KEYS,
+  BUILDING_REVIEW_LABEL,
+  BuildingReviewKey,
   FILE_KIND_LABEL,
   FILE_STATUS_BADGE,
   FILE_STATUS_LABEL,
@@ -39,7 +45,7 @@ import { openProjectForm } from './open-project-form';
 import { ProjectMapComponent } from './project-map.component';
 
 /** File kinds the backend processes automatically (see backend/app/services). */
-const IMPORTABLE_KINDS: readonly FileKind[] = ['kml', 'kmz'];
+const IMPORTABLE_KINDS: readonly FileKind[] = ['kml', 'kmz', 'dxf', 'dwg'];
 const POLL_MS = 1500;
 
 interface UploadResult {
@@ -50,6 +56,7 @@ interface UploadResult {
 @Component({
   selector: 'app-project-detail',
   imports: [RouterLink, DatePipe, DecimalPipe, FileSizePipe, ProjectMapComponent],
+  styles: `.swatch { display: inline-block; width: .9rem; height: .9rem; border-radius: .2rem; }`,
   template: `
     <nav aria-label="breadcrumb">
       <ol class="breadcrumb">
@@ -91,7 +98,33 @@ interface UploadResult {
             <span class="small text-muted">· {{ layers()?.features?.length }} imported features</span>
           }
         </div>
-        <app-project-map [layers]="layers()" />
+        <app-project-map [layers]="layers()" [buildings]="buildings()" [visible]="visible()" />
+        @if (buildings(); as bl) {
+          @if (bl.summary.total || bl.summary.orphan_ids) {
+            <div class="card-footer small d-flex flex-wrap align-items-center gap-3">
+              <span class="fw-semibold">Buildings {{ bl.summary.total }}</span>
+              @for (key of reviewKeys; track key) {
+                <label class="form-check-label d-flex align-items-center gap-1">
+                  <input type="checkbox" class="form-check-input mt-0" [checked]="visible().has(key)"
+                         (change)="toggle(key)" />
+                  <span class="swatch" [style.background]="reviewColor[key]"></span>
+                  {{ reviewLabel[key] }} <strong>{{ reviewCount(bl, key) }}</strong>
+                </label>
+              }
+              @if (bl.summary.inside !== null) {
+                <span class="text-muted">
+                  · inside boundary {{ bl.summary.inside }}, crossing {{ bl.summary.crossing }},
+                  outside {{ bl.summary.outside }} (dashed)
+                </span>
+              }
+              @if (bl.provisional) {
+                <span class="badge text-bg-warning ms-auto" title="CAD reading rules (backend/app/rules/cad_layers.yaml) are status TBC">
+                  Provisional rules
+                </span>
+              }
+            </div>
+          }
+        }
       </div>
 
       <div class="card">
@@ -169,6 +202,7 @@ export class ProjectDetailComponent implements OnInit {
   private readonly projectsApi = inject(ProjectsService);
   private readonly filesApi = inject(FilesService);
   private readonly layersApi = inject(LayersService);
+  private readonly buildingsApi = inject(BuildingsService);
   private readonly modals = inject(NgbModal);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -180,6 +214,8 @@ export class ProjectDetailComponent implements OnInit {
   readonly project = signal<ProjectRead | null>(null);
   readonly files = signal<ProjectFileRead[]>([]);
   readonly layers = signal<ProjectLayers | null>(null);
+  readonly buildings = signal<BuildingLayer | null>(null);
+  readonly visible = signal<ReadonlySet<BuildingReviewKey>>(new Set(BUILDING_REVIEW_KEYS));
   readonly error = signal<string | null>(null);
   readonly uploading = signal(false);
   readonly uploadErrors = signal<UploadResult[]>([]);
@@ -190,9 +226,26 @@ export class ProjectDetailComponent implements OnInit {
   readonly kindLabel = FILE_KIND_LABEL;
   readonly fileLabel = FILE_STATUS_LABEL;
   readonly fileBadge = FILE_STATUS_BADGE;
+  readonly reviewKeys = BUILDING_REVIEW_KEYS;
+  readonly reviewLabel = BUILDING_REVIEW_LABEL;
+  readonly reviewColor = BUILDING_REVIEW_COLOR;
 
   ngOnInit(): void {
     this.load();
+  }
+
+  reviewCount(layer: BuildingLayer, key: BuildingReviewKey): number {
+    return key === 'orphan' ? layer.summary.orphan_ids : layer.summary[key];
+  }
+
+  toggle(key: BuildingReviewKey): void {
+    this.visible.update((current) => {
+      const next = new Set(current);
+      if (!next.delete(key)) {
+        next.add(key);
+      }
+      return next;
+    });
   }
 
   isImportable(f: ProjectFileRead): boolean {
@@ -206,11 +259,13 @@ export class ProjectDetailComponent implements OnInit {
       project: this.projectsApi.getProject({ project_id }),
       files: this.filesApi.listFiles({ project_id }),
       layers: this.layersApi.getLayers({ project_id }),
+      buildings: this.buildingsApi.getBuildings({ project_id }),
     }).subscribe({
-      next: ({ project, files, layers }) => {
+      next: ({ project, files, layers, buildings }) => {
         this.project.set(project);
         this.files.set(files);
         this.layers.set(layers);
+        this.buildings.set(buildings);
         this.error.set(null);
         // Processing runs in the background on the server: refresh until it finishes.
         if (files.some((f) => f.status === 'processing')) {
