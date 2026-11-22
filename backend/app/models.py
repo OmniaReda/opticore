@@ -98,3 +98,38 @@ class ProjectFeature(Base):
     geometry = mapped_column(Geometry("GEOMETRY", srid=4326, spatial_index=False), nullable=False)
 
     __table_args__ = (Index("ix_project_feature_geometry", "geometry", postgresql_using="gist"),)
+
+
+class Building(Base):
+    """A building polygon extracted from a CAD drawing (EPSG:4326).
+
+    The review status is not stored: it follows from how many BuildingLabels point at the building.
+    """
+
+    __tablename__ = "building"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("project.id", ondelete="CASCADE"), index=True)
+    source_file_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("project_file.id", ondelete="CASCADE"),
+                                                      index=True)
+    geometry = mapped_column(Geometry("POLYGON", srid=4326, spatial_index=False), nullable=False)
+
+    __table_args__ = (Index("ix_building_geometry", "geometry", postgresql_using="gist"),)
+
+
+class BuildingLabel(Base):
+    """A Building ID label placed on a CAD drawing (e.g. '12', '12-2').
+
+    building_id is the polygon the label lies in; NULL = the label is not inside any building.
+    """
+
+    __tablename__ = "building_label"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("project.id", ondelete="CASCADE"), index=True)
+    source_file_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("project_file.id", ondelete="CASCADE"),
+                                                      index=True)
+    building_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("building.id", ondelete="SET NULL"),
+                                                          index=True)
+    code: Mapped[str] = mapped_column(String(50))
+    geometry = mapped_column(Geometry("POINT", srid=4326, spatial_index=False), nullable=False)

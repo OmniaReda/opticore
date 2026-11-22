@@ -1,3 +1,4 @@
+import { BuildingStatus } from '../api/models/building-status';
 import { FileKind } from '../api/models/file-kind';
 import { FileStatus } from '../api/models/file-status';
 import { ProjectStatus } from '../api/models/project-status';
@@ -41,3 +42,23 @@ export const FILE_STATUS_BADGE: Record<FileStatus, string> = {
 
 /** Must match backend/app/storage.py EXTENSION_KIND. */
 export const ACCEPTED_FILE_TYPES = '.kml,.kmz,.dxf,.dwg,.xlsx,.pdf';
+
+/** Review status of a building polygon, plus IDs whose label is not inside any building. */
+export type BuildingReviewKey = BuildingStatus | 'orphan';
+
+export const BUILDING_REVIEW_KEYS: readonly BuildingReviewKey[] = ['ok', 'multiple_ids', 'no_id', 'orphan'];
+
+export const BUILDING_REVIEW_LABEL: Record<BuildingReviewKey, string> = {
+  ok: 'One ID',
+  multiple_ids: 'Several IDs',
+  no_id: 'No ID',
+  orphan: 'ID outside any building',
+};
+
+/** Map colours (also used for the legend swatches). */
+export const BUILDING_REVIEW_COLOR: Record<BuildingReviewKey, string> = {
+  ok: '#198754',
+  multiple_ids: '#fd7e14',
+  no_id: '#6c757d',
+  orphan: '#d63384',
+};

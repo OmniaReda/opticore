@@ -27,23 +27,26 @@ import project files → validate buildings & survey data → generate network d
 ## Geospatial invariants (do not break)
 - **Storage CRS: EPSG:4326** (lon/lat) in PostGIS `geometry(..., 4326)`.
 - **All measurements (length, area, distance) in EPSG:32636 (WGS 84 / UTM zone 36N), metres.** Never measure in degrees.
-- Design Team CAD files are in **UTM 36N metres** (`$INSUNITS = 1`). KML/KMZ are EPSG:4326.
+- Design Team CAD files are in **UTM 36N metres** (header says `$INSUNITS = 1`, which is wrong — ignore it). KML/KMZ are EPSG:4326.
 - 2D only — drop Z/altitude on import.
 - Cable length = designed route geometry length. **No automatic wastage/slack** unless an approved rule says otherwise.
 - All text is UTF-8 end-to-end (Arabic project/street names).
 
 ## Domain vocabulary (use the Design Team's terms in UI)
-- **Hub** (not FDH), **Network Box** (types TBC), **Service Area**, **Building ID** (format `ERA <n>`, e.g. `ERA 0` … `ERA 856`).
+- **Hub** (not FDH), **Network Box** (types TBC), **Service Area**, **Building ID** (e.g. `12`, `12-2` as in the survey Excel; base drawings write it as `ERA 12` — `ERA` is the survey company, not part of the ID). Format/pattern lives in `backend/app/rules/cad_layers.yaml`.
 - Survey fields per building: Building ID, Street Name, Building Number, Floors, Apartments per Floor, Shops, Total Users, Latitude, Longitude.
 - Workflow has 7 stages — see `docs/02-design-team-workflow.md`.
 
-## Known CAD file structure (reference project: Al-Amiriya)
-See `docs/03-amiriya-stage1-analysis.md`. Key points:
+## Known CAD file structure (test region files)
+See `docs/03-amiriya-stage1-analysis.md`. Layer names differ between drawing versions → each convention is a profile in `backend/app/rules/cad_layers.yaml` (auto-detected). Stage 01 base drawing:
 - Buildings layer `مناطق سكنيه`: LWPOLYLINEs, **mostly open** → build polygons with `shapely.ops.polygonize`.
 - Building IDs layer `Serial Home`: TEXT `ERA <n>` → link to polygons by point-in-polygon.
 - Street names layer `TEXT نص الدلتا 4-4`: TEXT in legacy SHX font `xarb.shx` → **not Unicode**, decoding is an open issue.
 - Hatch layer `baldimg`: meaning TBC. Frame layers `500`, `2500`, `1-500`: print frames, ignore for design.
-- One stray INSERT far outside the project extent → importers must clip to the project boundary.
+- One stray INSERT far outside the project extent (frame layer, not read).
+- Stage 03 validated drawing: buildings on `Building`, IDs on `Serial HomeNEW` (match the survey Excel 1:1).
+- Buildings are **not** clipped to the project boundary (the Design Team numbers edge buildings too); each building gets inside/crossing/outside instead.
+- `$INSUNITS` is unreliable (files say 1 = inches but are metres) → do not trust it; check coordinates look like UTM 36N instead.
 
 ## Repository layout
 ```

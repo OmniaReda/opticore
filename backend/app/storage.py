@@ -58,6 +58,10 @@ def save(src: BinaryIO, project_id: uuid.UUID, file_id: uuid.UUID, filename: str
     return str(rel), size, digest.hexdigest()
 
 
+def absolute_path(stored_path: str) -> Path:
+    return get_settings().storage_dir / stored_path
+
+
 def read_bytes(stored_path: str) -> bytes:
     return (get_settings().storage_dir / stored_path).read_bytes()
 

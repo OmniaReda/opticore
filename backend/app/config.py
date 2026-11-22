@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     storage_dir: Path = BACKEND_DIR / "storage"
     max_upload_mb: int = 200
     cors_origins: list[str] = ["http://localhost:4200"]
+    # External DWG → DXF converter (LibreDWG `dwg2dxf`). Run as a separate program, never bundled
+    # (GPL — see docs/adr/0001-dwg-conversion.md). Not set → DWG uploads fail with a clear message.
+    dwg2dxf_path: Path | None = None
+    dwg_convert_timeout_s: int = 300
 
 
 @lru_cache

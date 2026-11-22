@@ -439,6 +439,50 @@
         }
       }
     },
+    "/projects/{project_id}/buildings": {
+      "get": {
+        "tags": [
+          "buildings"
+        ],
+        "summary": "Get Buildings",
+        "description": "Buildings from the latest imported drawing, with review status (EPSG:4326 GeoJSON).",
+        "operationId": "get_buildings",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuildingLayer"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "tags": [
@@ -481,6 +525,15 @@
         ],
         "title": "Body_upload_file"
       },
+      "BoundaryPosition": {
+        "type": "string",
+        "enum": [
+          "inside",
+          "crossing",
+          "outside"
+        ],
+        "title": "BoundaryPosition"
+      },
       "BoundaryRead": {
         "properties": {
           "geometry": {
@@ -517,6 +570,181 @@
           "perimeter_m"
         ],
         "title": "BoundaryRead"
+      },
+      "BuildingLayer": {
+        "properties": {
+          "source_file_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source File Id",
+            "description": "Drawing the buildings were imported from"
+          },
+          "provisional": {
+            "type": "boolean",
+            "title": "Provisional",
+            "description": "True while the CAD reading rules are not approved (status TBC)"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/BuildingSummary"
+          },
+          "buildings": {
+            "items": {
+              "$ref": "#/components/schemas/BuildingRead"
+            },
+            "type": "array",
+            "title": "Buildings"
+          },
+          "orphan_labels": {
+            "items": {
+              "$ref": "#/components/schemas/OrphanLabelRead"
+            },
+            "type": "array",
+            "title": "Orphan Labels"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source_file_id",
+          "provisional",
+          "summary",
+          "buildings",
+          "orphan_labels"
+        ],
+        "title": "BuildingLayer"
+      },
+      "BuildingRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Codes",
+            "description": "Building IDs whose label lies inside this polygon"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BuildingStatus"
+          },
+          "boundary_position": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BoundaryPosition"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "None when the project has no boundary"
+          },
+          "area_m2": {
+            "type": "number",
+            "title": "Area M2",
+            "description": "Measured in EPSG:32636 (UTM 36N)"
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/GeoJsonGeometry"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "codes",
+          "status",
+          "boundary_position",
+          "area_m2",
+          "geometry"
+        ],
+        "title": "BuildingRead"
+      },
+      "BuildingStatus": {
+        "type": "string",
+        "enum": [
+          "ok",
+          "multiple_ids",
+          "no_id"
+        ],
+        "title": "BuildingStatus"
+      },
+      "BuildingSummary": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "ok": {
+            "type": "integer",
+            "title": "Ok"
+          },
+          "multiple_ids": {
+            "type": "integer",
+            "title": "Multiple Ids"
+          },
+          "no_id": {
+            "type": "integer",
+            "title": "No Id"
+          },
+          "orphan_ids": {
+            "type": "integer",
+            "title": "Orphan Ids"
+          },
+          "inside": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inside"
+          },
+          "crossing": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Crossing"
+          },
+          "outside": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outside"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "ok",
+          "multiple_ids",
+          "no_id",
+          "orphan_ids",
+          "inside",
+          "crossing",
+          "outside"
+        ],
+        "title": "BuildingSummary"
       },
       "FeatureRead": {
         "properties": {
@@ -620,6 +848,30 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "OrphanLabelRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/GeoJsonGeometry"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "geometry"
+        ],
+        "title": "OrphanLabelRead",
+        "description": "A Building ID label that is not inside any building polygon."
       },
       "ProjectCreate": {
         "properties": {

@@ -16,10 +16,12 @@ from lxml import etree
 from shapely.geometry import LineString, Point, Polygon
 from shapely.geometry.base import BaseGeometry
 
+from app.importers import FileContentError
+
 MAX_KMZ_UNCOMPRESSED = 200 * 1024 * 1024  # guard against zip bombs
 
 
-class KmlError(ValueError):
+class KmlError(FileContentError):
     """The file cannot be read as KML. Message is shown to the user."""
 
 
