@@ -53,17 +53,25 @@ export class ProjectDetail {
       { label: 'Excel', url: `${base}/xlsx`, title: 'One row per building' },
       { label: 'DXF', url: `${base}/dxf`, title: 'AutoCAD, UTM 36N metres' },
     ];
+    const buildings = this.store.buildings();
+    if (buildings && (buildings.summary.total || buildings.summary.orphan_ids)) {
+      // The whole map in the survey template: one row per Building ID, street names filled in.
+      all.unshift({
+        label: 'Survey sheet (Excel)',
+        url: `${base}/survey-sheet`,
+        title:
+          'One row per Building ID in the survey template, with street names and all known data',
+      });
+    }
     // Street names come from OpenStreetMap inside the boundary: available right after the first KML.
-    return this.store.layers()?.boundary
-      ? [
-          ...all,
-          {
-            label: 'Streets (Excel)',
-            url: `${base}/streets`,
-            title: 'Street names inside the boundary, from OpenStreetMap',
-          },
-        ]
-      : all;
+    if (this.store.layers()?.boundary) {
+      all.push({
+        label: 'Streets (Excel)',
+        url: `${base}/streets`,
+        title: 'Street names inside the boundary, from OpenStreetMap',
+      });
+    }
+    return all;
   });
 
   /** Review categories shown on the map. */

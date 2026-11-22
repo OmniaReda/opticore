@@ -18,6 +18,7 @@ from geoalchemy2.shape import to_shape
 from openpyxl import Workbook
 from openpyxl.styles import Font
 from shapely.geometry.base import BaseGeometry
+from shapely.strtree import STRtree
 
 from app import geo, storage
 from app.config import get_settings
@@ -93,6 +94,37 @@ def _osm_xml(project: Project, boundary: BaseGeometry) -> bytes:
     cache.parent.mkdir(parents=True, exist_ok=True)
     cache.write_bytes(data)
     return data
+
+
+def osm_streets(project: Project) -> list[osm.OsmStreet]:
+    """All named OSM streets around the project boundary (cached). Raises ConflictError without boundary."""
+    if project.boundary is None:
+        raise ConflictError("Upload the project KML first: streets are taken inside the project boundary.")
+    return osm.parse(_osm_xml(project, to_shape(project.boundary)))
+
+
+@dataclass
+class NearestStreet:
+    name_ar: str
+    name_en: str | None
+    distance_m: float
+
+
+class StreetFinder:
+    """Nearest named street to a geometry, measured in UTM 36N metres."""
+
+    def __init__(self, streets: list[osm.OsmStreet]) -> None:
+        self._streets = streets
+        self._lines = [geo.to_measure_crs(s.line) for s in streets]
+        self._tree = STRtree(self._lines) if self._lines else None
+
+    def nearest(self, geom: BaseGeometry) -> NearestStreet | None:
+        if self._tree is None:
+            return None
+        utm = geo.to_measure_crs(geom)
+        i = int(self._tree.nearest(utm))
+        street = self._streets[i]
+        return NearestStreet(street.name_ar, street.name_en, float(utm.distance(self._lines[i])))
 
 
 def streets_in_boundary(project: Project) -> list[StreetRow]:

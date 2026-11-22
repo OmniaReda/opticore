@@ -41,3 +41,5 @@ export type { ExportDxf$Params as ExportDxf$Params } from './fn/exports/export-d
 export { exportDxf as exportDxf } from './fn/exports/export-dxf';
 export type { ExportStreets$Params as ExportStreets$Params } from './fn/exports/export-streets';
 export { exportStreets as exportStreets } from './fn/exports/export-streets';
+export type { ExportSurveySheet$Params as ExportSurveySheet$Params } from './fn/exports/export-survey-sheet';
+export { exportSurveySheet as exportSurveySheet } from './fn/exports/export-survey-sheet';
