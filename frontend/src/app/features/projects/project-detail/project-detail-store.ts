@@ -11,6 +11,7 @@ import { FilesService } from '../../../api/services/files.service';
 import { LayersService } from '../../../api/services/layers.service';
 import { ProjectsService } from '../../../api/services/projects.service';
 import { SurveyService } from '../../../api/services/survey.service';
+import { ValidationService } from '../../../api/services/validation.service';
 import { apiErrorMessage } from '../../../shared/api-error';
 
 /** File kinds the backend processes automatically (see backend/app/services/processing.py). */
@@ -32,6 +33,7 @@ export class ProjectDetailStore {
   private readonly layersApi = inject(LayersService);
   private readonly buildingsApi = inject(BuildingsService);
   private readonly surveyApi = inject(SurveyService);
+  private readonly validationApi = inject(ValidationService);
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly projectId = signal<string | undefined>(undefined);
@@ -45,6 +47,7 @@ export class ProjectDetailStore {
         layers: this.layersApi.getLayers({ project_id }),
         buildings: this.buildingsApi.getBuildings({ project_id }),
         survey: this.surveyApi.getSurvey({ project_id }),
+        validation: this.validationApi.getValidation({ project_id }),
       }),
   });
 
@@ -57,6 +60,7 @@ export class ProjectDetailStore {
   readonly layers = computed(() => this.data()?.layers ?? null);
   readonly buildings = computed(() => this.data()?.buildings ?? null);
   readonly survey = computed(() => this.data()?.survey ?? null);
+  readonly validation = computed(() => this.data()?.validation ?? null);
   /** Survey row per Building ID (for the map tooltip). */
   readonly surveyByCode = computed(
     () => new Map<string, SurveyRecordRead>((this.survey()?.records ?? []).map((r) => [r.code, r])),

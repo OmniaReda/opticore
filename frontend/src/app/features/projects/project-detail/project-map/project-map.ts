@@ -26,7 +26,13 @@ import { GeoJsonGeometry } from '../../../../api/models/geo-json-geometry';
 import { ProjectLayers } from '../../../../api/models/project-layers';
 import { SurveyRecordRead } from '../../../../api/models/survey-record-read';
 import { BUILDING_REVIEW_KEYS, BuildingReviewKey } from '../../../../shared/labels';
-import { BOUNDARY_STYLE, buildingStyle, buildingTooltip, featureStyle } from './map-styles';
+import {
+  BOUNDARY_STYLE,
+  FOCUS_STYLE,
+  buildingStyle,
+  buildingTooltip,
+  featureStyle,
+} from './map-styles';
 
 const geojson = new GeoJSON({ dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857' });
 
@@ -83,6 +89,8 @@ export class ProjectMap {
   readonly survey = input<ReadonlyMap<string, SurveyRecordRead>>(new Map());
   /** Review categories to draw; the others are hidden. */
   readonly visible = input<ReadonlySet<BuildingReviewKey>>(new Set(BUILDING_REVIEW_KEYS));
+  /** A place to zoom to and mark (e.g. a validation issue). A new object zooms again. */
+  readonly focus = input<GeoJsonGeometry | null>(null);
 
   protected readonly hoverName = signal<string | null>(null);
   protected readonly isEmptyMap = signal(true);
@@ -91,6 +99,7 @@ export class ProjectMap {
   private readonly boundarySource = new VectorSource<OlFeature<Geometry>>();
   private readonly featureSource = new VectorSource<OlFeature<Geometry>>();
   private readonly buildingSource = new VectorSource<OlFeature<Geometry>>();
+  private readonly focusSource = new VectorSource<OlFeature<Geometry>>();
   private readonly buildingLayer = new VectorLayer({
     source: this.buildingSource,
     style: (f) => buildingStyle(f, this.visible()),
@@ -113,6 +122,13 @@ export class ProjectMap {
       this.visible();
       this.buildingLayer.changed(); // re-run the style function
     });
+    effect(() => {
+      const map = this.map();
+      const focus = this.focus();
+      if (map) {
+        this.showFocus(map, focus);
+      }
+    });
   }
 
   private createMap(): OlMap {
@@ -124,6 +140,7 @@ export class ProjectMap {
         new VectorLayer({ source: this.boundarySource, style: BOUNDARY_STYLE }),
         this.buildingLayer,
         new VectorLayer({ source: this.featureSource, style: featureStyle }),
+        new VectorLayer({ source: this.focusSource, style: FOCUS_STYLE }),
       ],
       view: new View({ center: [0, 0], zoom: 2 }),
     });
@@ -133,6 +150,19 @@ export class ProjectMap {
       this.hoverName.set(typeof name === 'string' ? name : null);
     });
     return map;
+  }
+
+  private showFocus(map: OlMap, focus: GeoJsonGeometry | null): void {
+    this.focusSource.clear();
+    if (!focus) {
+      return;
+    }
+    const feature = toOl(focus, null);
+    this.focusSource.addFeature(feature);
+    const extent = feature.getGeometry()?.getExtent();
+    if (extent) {
+      map.getView().fit(extent, { padding: [80, 80, 80, 80], maxZoom: 19, duration: 400 });
+    }
   }
 
   private render(

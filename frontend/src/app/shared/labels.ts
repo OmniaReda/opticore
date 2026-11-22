@@ -1,5 +1,6 @@
 import { BuildingStatus } from '../api/models/building-status';
 import { FileKind } from '../api/models/file-kind';
+import { IssueSeverity } from '../api/models/issue-severity';
 import { FileStatus } from '../api/models/file-status';
 import { ProjectStatus } from '../api/models/project-status';
 
@@ -66,4 +67,10 @@ export const BUILDING_REVIEW_COLOR: Record<BuildingReviewKey, string> = {
   multiple_ids: '#fd7e14',
   no_id: '#6c757d',
   orphan: '#d63384',
+};
+
+export const ISSUE_SEVERITY_BADGE: Record<IssueSeverity, string> = {
+  error: 'text-bg-danger',
+  warning: 'text-bg-warning',
+  info: 'text-bg-secondary',
 };

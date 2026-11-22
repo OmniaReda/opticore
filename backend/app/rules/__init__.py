@@ -110,3 +110,21 @@ class SurveyColumnRules(RulesFile):
 @lru_cache
 def survey_columns() -> SurveyColumnRules:
     return SurveyColumnRules.model_validate(_load("survey_columns.yaml"))
+
+
+class DecisionValues(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    te_comment: list[str] = []
+    hp_count: list[str] = []
+
+
+class ValidationRules(RulesFile):
+    gps_max_distance_m: float = Field(gt=0)
+    check_total_users_formula: bool
+    decision_values: DecisionValues
+
+
+@lru_cache
+def validation() -> ValidationRules:
+    return ValidationRules.model_validate(_load("validation.yaml"))

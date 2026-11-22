@@ -5,6 +5,7 @@ import { ProjectLayers } from '../api/models/project-layers';
 import { ProjectRead } from '../api/models/project-read';
 import { SurveyLayer } from '../api/models/survey-layer';
 import { SurveyRecordRead } from '../api/models/survey-record-read';
+import { ValidationReport } from '../api/models/validation-report';
 
 export const PROJECT_ID = '00000000-0000-4000-8000-000000000001';
 
@@ -108,6 +109,67 @@ export function sampleSurvey(overrides: Partial<SurveyLayer> = {}): SurveyLayer 
     records: [sampleSurveyRecord()],
     not_in_drawing: ['7'],
     drawing_ids_without_survey: ['2', '9'],
+    ...overrides,
+  };
+}
+
+export function sampleValidation(overrides: Partial<ValidationReport> = {}): ValidationReport {
+  const point = { type: 'Point', coordinates: [31.3, 30.1] };
+  return {
+    provisional: true,
+    gps_max_distance_m: 25,
+    has_drawing: true,
+    has_survey: true,
+    rules: [
+      {
+        rule: 'id_outside_building',
+        severity: 'error',
+        title: 'Building ID not inside any building',
+        count: 1,
+      },
+      { rule: 'duplicate_drawing_id', severity: 'error', title: 'Duplicate', count: 0 },
+      {
+        rule: 'gps_far_from_building',
+        severity: 'warning',
+        title: 'Survey GPS far from its building',
+        count: 2,
+      },
+      { rule: 'building_without_id', severity: 'info', title: 'Building without ID', count: 1 },
+    ],
+    issues: [
+      {
+        rule: 'id_outside_building',
+        severity: 'error',
+        code: '9',
+        row_number: null,
+        message: 'ID 9 is outside',
+        geometry: point,
+      },
+      {
+        rule: 'gps_far_from_building',
+        severity: 'warning',
+        code: '3',
+        row_number: 4,
+        message: 'GPS is 50 m',
+        geometry: point,
+      },
+      {
+        rule: 'gps_far_from_building',
+        severity: 'warning',
+        code: '6',
+        row_number: 7,
+        message: 'GPS is 233 m',
+        geometry: null,
+      },
+      {
+        rule: 'building_without_id',
+        severity: 'info',
+        code: null,
+        row_number: null,
+        message: 'Outline of 200 m²',
+        geometry: point,
+      },
+    ],
     ...overrides,
   };
 }

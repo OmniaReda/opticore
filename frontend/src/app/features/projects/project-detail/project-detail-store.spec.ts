@@ -11,6 +11,7 @@ import {
   sampleFile,
   sampleProject,
   sampleSurvey,
+  sampleValidation,
 } from '../../../testing/fixtures';
 import { POLL_MS, ProjectDetailStore } from './project-detail-store';
 
@@ -45,7 +46,7 @@ describe('ProjectDetailStore', () => {
     TestBed.tick();
   }
 
-  /** Answers the five requests of one page load. */
+  /** Answers the requests of one page load. */
   async function respond(files: ProjectFileRead[]): Promise<void> {
     await settle();
     http.expectOne(BASE).flush(sampleProject());
@@ -53,6 +54,7 @@ describe('ProjectDetailStore', () => {
     http.expectOne(`${BASE}/layers`).flush(EMPTY_LAYERS);
     http.expectOne(`${BASE}/buildings`).flush(sampleBuildings());
     http.expectOne(`${BASE}/survey`).flush(sampleSurvey());
+    http.expectOne(`${BASE}/validation`).flush(sampleValidation());
     await settle();
   }
 
@@ -63,6 +65,7 @@ describe('ProjectDetailStore', () => {
     expect(store.files()).toHaveLength(1);
     expect(store.buildings()?.summary.total).toBe(6);
     expect(store.surveyByCode().get('1')?.total_users).toBe(10);
+    expect(store.validation()?.issues).toHaveLength(4);
     expect(store.error()).toBeNull();
   });
 
@@ -84,7 +87,13 @@ describe('ProjectDetailStore', () => {
     await settle();
     http.expectOne(BASE).flush({ detail: 'Project not found' }, { status: 404, statusText: 'NF' });
     // forkJoin cancels the other requests once one fails.
-    for (const url of [`${BASE}/files`, `${BASE}/layers`, `${BASE}/buildings`, `${BASE}/survey`]) {
+    for (const url of [
+      `${BASE}/files`,
+      `${BASE}/layers`,
+      `${BASE}/buildings`,
+      `${BASE}/survey`,
+      `${BASE}/validation`,
+    ]) {
       expect(http.match(url).every((r) => r.cancelled)).toBe(true);
     }
     await settle();

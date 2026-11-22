@@ -14,7 +14,7 @@
 @if (store.project(); as project) {
   <app-project-header [project]="project" (edit)="edit($event)" (remove)="removeProject($event)" />
 
-  <section class="card mb-4" aria-labelledby="map-title">
+  <section #mapCard class="card mb-4" aria-labelledby="map-title">
     <div class="card-header d-flex align-items-center flex-wrap gap-2">
       <h2 id="map-title" class="h6 fw-semibold mb-0 me-auto">Map</h2>
       @if (store.layers()?.boundary; as b) {
@@ -31,6 +31,7 @@
       [layers]="store.layers()"
       [buildings]="store.buildings()"
       [survey]="store.surveyByCode()"
+      [focus]="focus()"
       [visible]="visible()"
     />
     @if (store.buildings(); as buildings) {
@@ -41,6 +42,16 @@
       }
     }
   </section>
+
+  @if (store.validation(); as validation) {
+    @if (validation.rules.length) {
+      <app-validation-report
+        [report]="validation"
+        [projectId]="project.id"
+        (show)="showIssue($event, mapCard)"
+      />
+    }
+  }
 
   @if (store.survey(); as survey) {
     @if (survey.summary.rows) {

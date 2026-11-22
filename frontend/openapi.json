@@ -559,6 +559,90 @@
           }
         }
       }
+    },
+    "/projects/{project_id}/validation": {
+      "get": {
+        "tags": [
+          "validation"
+        ],
+        "summary": "Get Validation",
+        "description": "Consistency report between the drawing's Building IDs and the survey Excel (Stage 03).",
+        "operationId": "get_validation",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationReport"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{project_id}/validation/export": {
+      "get": {
+        "tags": [
+          "validation"
+        ],
+        "summary": "Export Validation",
+        "description": "The same report as an Excel file (one sheet with the summary, one with every issue).",
+        "operationId": "export_validation",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -927,6 +1011,15 @@
         ],
         "title": "Health"
       },
+      "IssueSeverity": {
+        "type": "string",
+        "enum": [
+          "error",
+          "warning",
+          "info"
+        ],
+        "title": "IssueSeverity"
+      },
       "OrphanLabelRead": {
         "properties": {
           "id": {
@@ -1183,6 +1276,32 @@
         "type": "object",
         "title": "ProjectUpdate",
         "description": "Partial update: only fields that are sent are changed. name / status may be omitted, not null."
+      },
+      "RuleSummary": {
+        "properties": {
+          "rule": {
+            "$ref": "#/components/schemas/ValidationRule"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/IssueSeverity"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rule",
+          "severity",
+          "title",
+          "count"
+        ],
+        "title": "RuleSummary"
       },
       "SurveyLayer": {
         "properties": {
@@ -1628,6 +1747,130 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "ValidationIssue": {
+        "properties": {
+          "rule": {
+            "$ref": "#/components/schemas/ValidationRule"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/IssueSeverity"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code",
+            "description": "Building ID concerned, if any"
+          },
+          "row_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Number",
+            "description": "Survey Excel row, if the issue comes from the survey"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "geometry": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GeoJsonGeometry"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Where to look on the map (EPSG:4326)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rule",
+          "severity",
+          "code",
+          "row_number",
+          "message",
+          "geometry"
+        ],
+        "title": "ValidationIssue"
+      },
+      "ValidationReport": {
+        "properties": {
+          "provisional": {
+            "type": "boolean",
+            "title": "Provisional",
+            "description": "True while the validation rules are not approved (status TBC)"
+          },
+          "gps_max_distance_m": {
+            "type": "number",
+            "title": "Gps Max Distance M"
+          },
+          "has_drawing": {
+            "type": "boolean",
+            "title": "Has Drawing"
+          },
+          "has_survey": {
+            "type": "boolean",
+            "title": "Has Survey"
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/RuleSummary"
+            },
+            "type": "array",
+            "title": "Rules",
+            "description": "Every check that ran, with its number of issues"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationIssue"
+            },
+            "type": "array",
+            "title": "Issues"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provisional",
+          "gps_max_distance_m",
+          "has_drawing",
+          "has_survey",
+          "rules",
+          "issues"
+        ],
+        "title": "ValidationReport"
+      },
+      "ValidationRule": {
+        "type": "string",
+        "enum": [
+          "id_outside_building",
+          "duplicate_drawing_id",
+          "multiple_ids",
+          "building_without_id",
+          "survey_not_in_drawing",
+          "duplicate_survey_id",
+          "drawing_id_without_survey",
+          "gps_missing",
+          "gps_far_from_building",
+          "total_users_formula",
+          "total_users_missing",
+          "home_pass_differs",
+          "needs_decision"
+        ],
+        "title": "ValidationRule"
       }
     }
   }
