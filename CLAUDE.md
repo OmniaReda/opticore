@@ -58,10 +58,12 @@ data/      LOCAL ONLY — customer files (DWG/KML/PDF/Excel). Git-ignored. Never
 ```bash
 docker compose up -d db                       # PostGIS on localhost:5432
 cd backend && python -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt
+alembic upgrade head                          # apply DB migrations
 uvicorn app.main:app --reload                 # API on :8000, docs on /docs
-pytest                                        # backend tests
+pytest                                        # backend tests (real PostGIS, DB "opticore_test")
 python tools/extract_buildings.py data/<file>.dxf   # building extraction prototype
-cd frontend && npm start                      # Angular on :4200
+cd frontend && npm start                      # Angular on :4200, proxies /api → :8000
+npm run api                                   # regenerate src/app/api from FastAPI OpenAPI (never edit by hand)
 ```
 
 ## Rules for Claude Code

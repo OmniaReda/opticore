@@ -8,6 +8,9 @@ data/*
 *.xlsx
 *.pdf
 
+# Uploaded project files (backend local storage) — customer data
+backend/storage/
+
 # Python
 __pycache__/
 *.pyc
