@@ -39,6 +39,12 @@ Status: sent / pending. Update with answers + who confirmed.
 - [ ] `Total Users` vs `QTY of Home Pass`: which one drives the design?
 - [ ] `Building Entrance Length (m)` (mostly 5 m): is it added to the drop cable length?
 
+## Validation (Stage 03 report) — values in backend/app/rules/validation.yaml (TBC)
+- [ ] GPS tolerance: how far may the survey GPS be from its building? (prototype: 25 m; test region median 2 m, 3 rows > 45 m)
+- [ ] Which rows must have Total Users? Test region: 251 rows without it, mostly "FTTH served area" (84), TE Comment Delete (70), empty land, industrial, governmental — only ~25 are buildings.
+- [ ] Are TE Comment `Delete` / `Re-survey` and HP `Not Count` / `Review` the full list of "decision needed" values?
+- [ ] 56 outlines without ID (courtyards / gaps?) — can they be ignored?
+
 ## Design drawing conventions (seen in `Zone e`, another region)
 - [ ] Box types `11S1..3`, `9ES1..4`, `10S4`: what do 9/10/11 (ports?) and S/ES 1–4 mean? Capacity of each?
 - [ ] Layers `01-L1` … `06-L6`: what is L1–L6 (cable leg / Hub port / level)?

@@ -1,0 +1,19 @@
+# Stage 03 consistency checks between the drawing (buildings + Building IDs) and the survey Excel.
+source: "Prototype checks derived from the Stage 03 files of the test region — see docs/03"
+approved_by: null
+status: TBC
+
+# A survey GPS point further than this from its building (or its ID label when the label is not inside a
+# building) is reported. Test region: median 2 m, 90 % within 7 m, 3 rows over 50 m.
+# Prototype value, NOT confirmed by the Design Team.
+gps_max_distance_m: 25
+
+# Survey template formula (Total Users = Floors × Users per Floor + GF Users); holds for 672 of 673
+# complete rows in the test region.
+check_total_users_formula: true
+
+# Survey values that mean "a decision is needed" (reported as info; whether such buildings are excluded
+# from the design is an open question — docs/04).
+decision_values:
+  te_comment: ["Delete", "Deleted", "Re-survey"]
+  hp_count: ["Not Count", "Review"]

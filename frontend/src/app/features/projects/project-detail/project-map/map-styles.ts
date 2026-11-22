@@ -94,3 +94,12 @@ export function buildingTooltip(
   const status = BUILDING_REVIEW_LABEL[b.status];
   return `${ids} · ${Math.round(b.area_m2)} m² · ${status}${surveyText(b.codes, survey)}${position}`;
 }
+
+/** Marker for the issue picked in the validation report. */
+export const FOCUS_STYLE = new Style({
+  image: new Circle({
+    radius: 11,
+    stroke: new Stroke({ color: '#0d6efd', width: 3 }),
+    fill: new Fill({ color: 'rgba(13, 110, 253, 0.15)' }),
+  }),
+});

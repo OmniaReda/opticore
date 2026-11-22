@@ -3,8 +3,10 @@ import { Component, effect, inject, input, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { filter, switchMap } from 'rxjs';
 
+import { GeoJsonGeometry } from '../../../api/models/geo-json-geometry';
 import { ProjectFileRead } from '../../../api/models/project-file-read';
 import { ProjectRead } from '../../../api/models/project-read';
+import { ValidationIssue } from '../../../api/models/validation-issue';
 import { ConfirmDialogService } from '../../../shared/confirm-dialog/confirm-dialog-service';
 import { BUILDING_REVIEW_KEYS, BuildingReviewKey } from '../../../shared/labels';
 import { ProjectFormDialogService } from '../project-form/project-form-dialog-service';
@@ -14,6 +16,7 @@ import { ProjectFiles } from './project-files/project-files';
 import { ProjectHeader } from './project-header/project-header';
 import { ProjectMap } from './project-map/project-map';
 import { SurveySummary } from './survey-summary/survey-summary';
+import { ValidationReport } from './validation-report/validation-report';
 
 /** Project page: header, map with buildings, uploaded files. State lives in ProjectDetailStore. */
 @Component({
@@ -25,6 +28,7 @@ import { SurveySummary } from './survey-summary/survey-summary';
     ProjectMap,
     BuildingLegend,
     SurveySummary,
+    ValidationReport,
     ProjectFiles,
   ],
   providers: [ProjectDetailStore],
@@ -43,9 +47,17 @@ export class ProjectDetail {
   protected readonly visible = signal<ReadonlySet<BuildingReviewKey>>(
     new Set(BUILDING_REVIEW_KEYS),
   );
+  /** Place marked on the map (validation issue). */
+  protected readonly focus = signal<GeoJsonGeometry | null>(null);
 
   constructor() {
     effect(() => this.store.load(this.id()));
+  }
+
+  protected showIssue(issue: ValidationIssue, mapCard: HTMLElement): void {
+    // Copy: picking the same issue again zooms again.
+    this.focus.set(issue.geometry ? { ...issue.geometry } : null);
+    mapCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   protected edit(project: ProjectRead): void {

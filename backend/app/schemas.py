@@ -183,3 +183,50 @@ class SurveyLayer(BaseModel):
     records: list[SurveyRecordRead]
     not_in_drawing: list[str] = Field(description="Survey Building IDs missing on the drawing")
     drawing_ids_without_survey: list[str] = Field(description="Drawing Building IDs missing in the survey")
+
+
+class IssueSeverity(enum.StrEnum):
+    error = "error"  # must be fixed before design
+    warning = "warning"  # probably wrong, check
+    info = "info"  # needs a decision / for information
+
+
+class ValidationRule(enum.StrEnum):
+    id_outside_building = "id_outside_building"
+    duplicate_drawing_id = "duplicate_drawing_id"
+    multiple_ids = "multiple_ids"
+    building_without_id = "building_without_id"
+    survey_not_in_drawing = "survey_not_in_drawing"
+    duplicate_survey_id = "duplicate_survey_id"
+    drawing_id_without_survey = "drawing_id_without_survey"
+    gps_missing = "gps_missing"
+    gps_far_from_building = "gps_far_from_building"
+    total_users_formula = "total_users_formula"
+    total_users_missing = "total_users_missing"
+    home_pass_differs = "home_pass_differs"
+    needs_decision = "needs_decision"
+
+
+class ValidationIssue(BaseModel):
+    rule: ValidationRule
+    severity: IssueSeverity
+    code: str | None = Field(description="Building ID concerned, if any")
+    row_number: int | None = Field(description="Survey Excel row, if the issue comes from the survey")
+    message: str
+    geometry: GeoJsonGeometry | None = Field(description="Where to look on the map (EPSG:4326)")
+
+
+class RuleSummary(BaseModel):
+    rule: ValidationRule
+    severity: IssueSeverity
+    title: str
+    count: int
+
+
+class ValidationReport(BaseModel):
+    provisional: bool = Field(description="True while the validation rules are not approved (status TBC)")
+    gps_max_distance_m: float
+    has_drawing: bool
+    has_survey: bool
+    rules: list[RuleSummary] = Field(description="Every check that ran, with its number of issues")
+    issues: list[ValidationIssue]
