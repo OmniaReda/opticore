@@ -1,0 +1,82 @@
+<div class="card">
+  <div class="card-header d-flex align-items-center">
+    <h2 class="h6 fw-semibold mb-0 me-auto">Project files</h2>
+    <label class="btn btn-sm btn-primary mb-0" [class.disabled]="uploading()">
+      @if (uploading()) {
+        <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span> Uploading…
+      } @else {
+        Upload files
+      }
+      <input
+        type="file"
+        class="d-none"
+        multiple
+        [accept]="accept"
+        [disabled]="uploading()"
+        (change)="onFilesSelected($event)"
+      />
+    </label>
+  </div>
+
+  @for (r of uploadErrors(); track $index) {
+    <div
+      class="alert alert-warning rounded-0 border-0 border-bottom mb-0 py-2 small"
+      role="alert"
+      dir="auto"
+    >
+      <strong>{{ r.name }}</strong>: {{ r.error }}
+    </div>
+  }
+
+  @if (files().length === 0) {
+    <div class="card-body text-muted text-center py-4">
+      No files yet. Accepted: KML, KMZ, DXF, DWG, survey Excel (.xlsx), PDF.
+    </div>
+  } @else {
+    <table class="table align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th scope="col">File</th>
+          <th scope="col">Type</th>
+          <th scope="col" class="text-end">Size</th>
+          <th scope="col">Status</th>
+          <th scope="col">Uploaded</th>
+          <th scope="col"><span class="visually-hidden">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (f of files(); track f.id) {
+          <tr>
+            <td dir="auto" [title]="'SHA-256 ' + f.sha256">{{ f.original_filename }}</td>
+            <td>{{ kindLabel[f.kind] }}</td>
+            <td class="text-end text-nowrap">{{ f.size_bytes | fileSize }}</td>
+            <td>
+              <span class="badge" [class]="statusBadge[f.status]">{{ statusLabel[f.status] }}</span>
+              @if (f.error) {
+                <div class="small text-danger" dir="auto">{{ f.error }}</div>
+              }
+              @if (f.note) {
+                <div class="small text-muted" dir="auto">{{ f.note }}</div>
+              }
+            </td>
+            <td class="text-nowrap">{{ f.uploaded_at | date: 'short' }}</td>
+            <td class="text-end text-nowrap">
+              @if (canReprocess(f)) {
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary me-1"
+                  (click)="reprocess.emit(f)"
+                >
+                  Re-process
+                </button>
+              }
+              <button type="button" class="btn btn-sm btn-outline-danger" (click)="remove.emit(f)">
+                Delete
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>

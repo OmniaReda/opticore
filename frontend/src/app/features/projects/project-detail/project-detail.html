@@ -1,0 +1,56 @@
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a routerLink="/projects">Projects</a></li>
+    <li class="breadcrumb-item active" aria-current="page" dir="auto">
+      {{ store.project()?.name ?? '…' }}
+    </li>
+  </ol>
+</nav>
+
+@if (store.error(); as message) {
+  <div class="alert alert-danger" role="alert" dir="auto">{{ message }}</div>
+}
+
+@if (store.project(); as project) {
+  <app-project-header [project]="project" (edit)="edit($event)" (remove)="removeProject($event)" />
+
+  <section class="card mb-4" aria-labelledby="map-title">
+    <div class="card-header d-flex align-items-center flex-wrap gap-2">
+      <h2 id="map-title" class="h6 fw-semibold mb-0 me-auto">Map</h2>
+      @if (store.layers()?.boundary; as b) {
+        <span class="small text-muted">
+          Boundary area <strong>{{ b.area_m2 / 10000 | number: '1.1-1' }} ha</strong> · perimeter
+          <strong>{{ b.perimeter_m / 1000 | number: '1.2-2' }} km</strong>
+        </span>
+      }
+      @if (store.layers()?.features?.length; as count) {
+        <span class="small text-muted">· {{ count }} imported features</span>
+      }
+    </div>
+    <app-project-map
+      [layers]="store.layers()"
+      [buildings]="store.buildings()"
+      [visible]="visible()"
+    />
+    @if (store.buildings(); as buildings) {
+      @if (buildings.summary.total || buildings.summary.orphan_ids) {
+        <div class="card-footer">
+          <app-building-legend [buildings]="buildings" [(visible)]="visible" />
+        </div>
+      }
+    }
+  </section>
+
+  <app-project-files
+    [files]="store.files()"
+    [uploading]="store.uploading()"
+    [uploadErrors]="store.uploadErrors()"
+    (upload)="store.upload($event)"
+    (reprocess)="store.reprocess($event)"
+    (remove)="removeFile($event)"
+  />
+} @else if (!store.error()) {
+  <div class="text-center py-5">
+    <span class="spinner-border" role="status"><span class="visually-hidden">Loading…</span></span>
+  </div>
+}

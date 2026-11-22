@@ -67,6 +67,7 @@ pytest                                        # backend tests (real PostGIS, DB 
 python tools/extract_buildings.py data/<file>.dxf   # building extraction prototype
 cd frontend && npm start                      # Angular on :4200, proxies /api → :8000
 npm run api                                   # regenerate src/app/api from FastAPI OpenAPI (never edit by hand)
+npm test -- --watch=false; npm run lint; npm run format   # frontend unit tests, lint, prettier
 ```
 
 ## Rules for Claude Code
@@ -77,4 +78,10 @@ npm run api                                   # regenerate src/app/api from Fast
 5. Pin dependencies; check licences allow commercial use (avoid GPL in shipped code; LibreDWG is GPL → use only as an external CLI converter, never linked/bundled).
 6. Mock/sample data must be clearly labelled; never present mock output as real CAD/GIS processing.
 7. Engineering rules live in config (`backend/app/rules/*.yaml`), each with `source`, `approved_by`, `status: TBC|approved`.
-8. Frontend: Angular style — standalone components, typed reactive forms, services + RxJS, no `any`.
+8. Frontend: Angular style — standalone components, typed reactive forms, services + RxJS, no `any`. Conventions (enforced by `npm run lint`):
+   - Angular v20+ file names without type suffix: `project-list.ts` → class `ProjectList`; one folder per component (`.ts` + `.html` when the template is long).
+   - Features under `features/<name>/` with their own `<name>.routes.ts` (lazy); shared UI in `shared/`.
+   - Page state in a component-provided store (`*-store.ts`: signals + `rxResource` for loading, methods for actions); child components are presentational (`input()` / `output()` / `model()`).
+   - OnPush + zoneless are Angular 22 defaults — keep state in signals. DOM libraries (OpenLayers) start in `afterNextRender`.
+   - Dialogs open through injectable services (`ConfirmDialogService`, `ProjectFormDialogService`), not functions that take `NgbModal`.
+   - Unit tests (Vitest) next to the code; sample objects in `src/app/testing/fixtures.ts`.

@@ -1,0 +1,62 @@
+<form [formGroup]="form" (ngSubmit)="save()" novalidate>
+  <div class="modal-header">
+    <h5 class="modal-title">{{ project() ? 'Edit project' : 'New project' }}</h5>
+    <button type="button" class="btn-close" aria-label="Close" (click)="modal.dismiss()"></button>
+  </div>
+
+  <div class="modal-body">
+    @if (error(); as message) {
+      <div class="alert alert-danger py-2" role="alert" dir="auto">{{ message }}</div>
+    }
+
+    <div class="mb-3">
+      <label class="form-label" for="project-name">Name</label>
+      <input
+        id="project-name"
+        class="form-control"
+        formControlName="name"
+        dir="auto"
+        autocomplete="off"
+        aria-describedby="project-name-error"
+        [class.is-invalid]="form.controls.name.touched && form.controls.name.invalid"
+      />
+      <div id="project-name-error" class="invalid-feedback">
+        Name is required (max 200 characters).
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label" for="project-description">Description</label>
+      <textarea
+        id="project-description"
+        class="form-control"
+        rows="3"
+        formControlName="description"
+        dir="auto"
+      ></textarea>
+    </div>
+
+    @if (project()) {
+      <div class="mb-1">
+        <label class="form-label" for="project-status">Status</label>
+        <select id="project-status" class="form-select" formControlName="status">
+          @for (s of statuses; track s) {
+            <option [value]="s">{{ statusLabel[s] }}</option>
+          }
+        </select>
+      </div>
+    }
+  </div>
+
+  <div class="modal-footer">
+    <button type="button" class="btn btn-outline-secondary" (click)="modal.dismiss()">
+      Cancel
+    </button>
+    <button type="submit" class="btn btn-primary" [disabled]="saving()">
+      @if (saving()) {
+        <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+      }
+      Save
+    </button>
+  </div>
+</form>
