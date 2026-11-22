@@ -46,7 +46,12 @@ export const ACCEPTED_FILE_TYPES = '.kml,.kmz,.dxf,.dwg,.xlsx,.pdf';
 /** Review status of a building polygon, plus IDs whose label is not inside any building. */
 export type BuildingReviewKey = BuildingStatus | 'orphan';
 
-export const BUILDING_REVIEW_KEYS: readonly BuildingReviewKey[] = ['ok', 'multiple_ids', 'no_id', 'orphan'];
+export const BUILDING_REVIEW_KEYS: readonly BuildingReviewKey[] = [
+  'ok',
+  'multiple_ids',
+  'no_id',
+  'orphan',
+];
 
 export const BUILDING_REVIEW_LABEL: Record<BuildingReviewKey, string> = {
   ok: 'One ID',

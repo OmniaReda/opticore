@@ -6,11 +6,19 @@ interface FastApiValidationItem {
 }
 
 function isValidationList(detail: unknown): detail is FastApiValidationItem[] {
-  return Array.isArray(detail) && detail.every((d) => typeof d === 'object' && d !== null && 'msg' in d);
+  return (
+    Array.isArray(detail) && detail.every((d) => typeof d === 'object' && d !== null && 'msg' in d)
+  );
+}
+
+/** Resources wrap non-Error failures (like HttpErrorResponse) in an Error whose `cause` is the original. */
+function unwrap(err: unknown): unknown {
+  return err instanceof Error && err.cause instanceof HttpErrorResponse ? err.cause : err;
 }
 
 /** Turns a FastAPI error response into one readable line. */
-export function apiErrorMessage(err: unknown): string {
+export function apiErrorMessage(error: unknown): string {
+  const err = unwrap(error);
   if (!(err instanceof HttpErrorResponse)) {
     return 'Unexpected error.';
   }
@@ -18,7 +26,8 @@ export function apiErrorMessage(err: unknown): string {
     return 'Cannot reach the API. Is the backend running on :8000?';
   }
   const body: unknown = err.error;
-  const detail = typeof body === 'object' && body !== null && 'detail' in body ? body.detail : undefined;
+  const detail =
+    typeof body === 'object' && body !== null && 'detail' in body ? body.detail : undefined;
   if (typeof detail === 'string') {
     return detail;
   }
