@@ -27,6 +27,8 @@ export type { GetBuildings$Params as GetBuildings$Params } from './fn/buildings/
 export { getBuildings as getBuildings } from './fn/buildings/get-buildings';
 export type { GetSurvey$Params as GetSurvey$Params } from './fn/survey/get-survey';
 export { getSurvey as getSurvey } from './fn/survey/get-survey';
+export type { SurveyTemplate$Params as SurveyTemplate$Params } from './fn/survey/survey-template';
+export { surveyTemplate as surveyTemplate } from './fn/survey/survey-template';
 export type { GetValidation$Params as GetValidation$Params } from './fn/validation/get-validation';
 export { getValidation as getValidation } from './fn/validation/get-validation';
 export type { ExportValidation$Params as ExportValidation$Params } from './fn/validation/export-validation';

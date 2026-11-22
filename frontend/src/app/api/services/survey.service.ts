@@ -13,6 +13,8 @@ import { StrictHttpResponse } from '../strict-http-response';
 import { getSurvey } from '../fn/survey/get-survey';
 import { GetSurvey$Params } from '../fn/survey/get-survey';
 import { SurveyLayer } from '../models/survey-layer';
+import { surveyTemplate } from '../fn/survey/survey-template';
+import { SurveyTemplate$Params } from '../fn/survey/survey-template';
 
 @Injectable({ providedIn: 'root' })
 export class SurveyService extends BaseService {
@@ -52,6 +54,41 @@ export class SurveyService extends BaseService {
     const resp = this.getSurvey$Response(params, context);
     return resp.pipe(
       map((r: StrictHttpResponse<SurveyLayer>): SurveyLayer => r.body)
+    );
+  }
+
+  /** Path part for operation `surveyTemplate()` */
+  static readonly SurveyTemplatePath = '/survey/template';
+
+  /**
+   * Survey Template.
+   *
+   * Empty survey Excel with the columns OPTICORE reads (fill it, then upload it to a project).
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `surveyTemplate()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  surveyTemplate$Response(params?: SurveyTemplate$Params, context?: HttpContext): Observable<StrictHttpResponse<any>> {
+    const obs = surveyTemplate(this.http, this.rootUrl, params, context);
+    return obs;
+  }
+
+  /**
+   * Survey Template.
+   *
+   * Empty survey Excel with the columns OPTICORE reads (fill it, then upload it to a project).
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `surveyTemplate$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  surveyTemplate(params?: SurveyTemplate$Params, context?: HttpContext): Observable<any> {
+    const resp = this.surveyTemplate$Response(params, context);
+    return resp.pipe(
+      map((r: StrictHttpResponse<any>): any => r.body)
     );
   }
 

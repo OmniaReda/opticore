@@ -1,10 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 
+import { provideApiConfiguration } from '../../../../api/api-configuration';
 import { ProjectFileRead } from '../../../../api/models/project-file-read';
 import { sampleFile } from '../../../../testing/fixtures';
 import { ProjectFiles } from './project-files';
 
 function setup(files: ProjectFileRead[]) {
+  TestBed.configureTestingModule({ providers: [provideApiConfiguration('/api')] });
   const fixture = TestBed.createComponent(ProjectFiles);
   fixture.componentRef.setInput('files', files);
   fixture.detectChanges();
@@ -16,6 +18,12 @@ function buttons(el: HTMLElement, text: string): HTMLButtonElement[] {
 }
 
 describe('ProjectFiles', () => {
+  it('links the survey template', () => {
+    const link = setup([]).el.querySelector('a[download]');
+    expect(link?.textContent?.trim()).toBe('Survey template');
+    expect(link?.getAttribute('href')).toBe('/api/survey/template');
+  });
+
   it('shows an empty state', () => {
     expect(setup([]).el.textContent).toContain('No files yet');
   });
