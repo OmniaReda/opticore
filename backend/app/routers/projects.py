@@ -27,7 +27,8 @@ def _file_count(db: Session, project_id: uuid.UUID) -> int:
 
 
 def _read(project: Project, file_count: int) -> ProjectRead:
-    return ProjectRead.model_validate({**project.__dict__, "file_count": file_count})
+    return ProjectRead.model_validate({**project.__dict__, "file_count": file_count,
+                                       "has_boundary": project.boundary is not None})
 
 
 @router.get("", response_model=list[ProjectRead])

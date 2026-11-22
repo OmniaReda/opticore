@@ -7,6 +7,7 @@ export interface ProjectFileRead {
   error: (string | null);
   id: string;
   kind: FileKind;
+  note: (string | null);
   original_filename: string;
   project_id: string;
   sha256: string;

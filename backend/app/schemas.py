@@ -1,8 +1,8 @@
 import uuid
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from app.models import FileKind, FileStatus, ProjectStatus
 
@@ -33,7 +33,35 @@ class ProjectFileRead(BaseModel):
     sha256: str
     status: FileStatus
     error: str | None
+    note: str | None
     uploaded_at: datetime
+
+
+class GeoJsonGeometry(BaseModel):
+    """GeoJSON geometry in EPSG:4326 (lon, lat)."""
+
+    type: str
+    coordinates: list[Any]
+
+
+class BoundaryRead(BaseModel):
+    geometry: GeoJsonGeometry
+    source_file_id: uuid.UUID | None
+    area_m2: float = Field(description="Measured in EPSG:32636 (UTM 36N)")
+    perimeter_m: float = Field(description="Measured in EPSG:32636 (UTM 36N)")
+
+
+class FeatureRead(BaseModel):
+    id: uuid.UUID
+    source_file_id: uuid.UUID
+    name: str | None
+    description: str | None
+    geometry: GeoJsonGeometry
+
+
+class ProjectLayers(BaseModel):
+    boundary: BoundaryRead | None
+    features: list[FeatureRead]
 
 
 class ProjectRead(BaseModel):
@@ -44,5 +72,6 @@ class ProjectRead(BaseModel):
     description: str | None
     status: ProjectStatus
     file_count: int
+    has_boundary: bool
     created_at: datetime
     updated_at: datetime

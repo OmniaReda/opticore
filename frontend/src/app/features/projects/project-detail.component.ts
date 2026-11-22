@@ -1,12 +1,28 @@
-import { DatePipe } from '@angular/common';
-import { Component, OnInit, inject, input, signal } from '@angular/core';
+import { DatePipe, DecimalPipe } from '@angular/common';
+import { Component, DestroyRef, OnInit, inject, input, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { catchError, concatMap, filter, finalize, forkJoin, from, map, of, switchMap } from 'rxjs';
+import {
+  Subscription,
+  catchError,
+  concatMap,
+  filter,
+  finalize,
+  forkJoin,
+  from,
+  map,
+  of,
+  switchMap,
+  timer,
+} from 'rxjs';
 
+import { FileKind } from '../../api/models/file-kind';
 import { ProjectFileRead } from '../../api/models/project-file-read';
+import { ProjectLayers } from '../../api/models/project-layers';
 import { ProjectRead } from '../../api/models/project-read';
 import { FilesService } from '../../api/services/files.service';
+import { LayersService } from '../../api/services/layers.service';
 import { ProjectsService } from '../../api/services/projects.service';
 import { apiErrorMessage } from '../../shared/api-error';
 import { confirmDialog } from '../../shared/confirm-dialog.component';
@@ -20,6 +36,11 @@ import {
   PROJECT_STATUS_LABEL,
 } from '../../shared/labels';
 import { openProjectForm } from './open-project-form';
+import { ProjectMapComponent } from './project-map.component';
+
+/** File kinds the backend processes automatically (see backend/app/services). */
+const IMPORTABLE_KINDS: readonly FileKind[] = ['kml', 'kmz'];
+const POLL_MS = 1500;
 
 interface UploadResult {
   name: string;
@@ -28,7 +49,7 @@ interface UploadResult {
 
 @Component({
   selector: 'app-project-detail',
-  imports: [RouterLink, DatePipe, FileSizePipe],
+  imports: [RouterLink, DatePipe, DecimalPipe, FileSizePipe, ProjectMapComponent],
   template: `
     <nav aria-label="breadcrumb">
       <ol class="breadcrumb">
@@ -55,6 +76,22 @@ interface UploadResult {
         </div>
         <button type="button" class="btn btn-outline-secondary me-2" (click)="edit(p)">Edit</button>
         <button type="button" class="btn btn-outline-danger" (click)="removeProject(p)">Delete</button>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-header d-flex align-items-center flex-wrap gap-2">
+          <span class="fw-semibold me-auto">Map</span>
+          @if (layers()?.boundary; as b) {
+            <span class="small text-muted">
+              Boundary area <strong>{{ b.area_m2 / 10000 | number: '1.1-1' }} ha</strong> ·
+              perimeter <strong>{{ b.perimeter_m / 1000 | number: '1.2-2' }} km</strong>
+            </span>
+          }
+          @if (layers()?.features?.length) {
+            <span class="small text-muted">· {{ layers()?.features?.length }} imported features</span>
+          }
+        </div>
+        <app-project-map [layers]="layers()" />
       </div>
 
       <div class="card">
@@ -104,9 +141,17 @@ interface UploadResult {
                     @if (f.error) {
                       <div class="small text-danger" dir="auto">{{ f.error }}</div>
                     }
+                    @if (f.note) {
+                      <div class="small text-muted" dir="auto">{{ f.note }}</div>
+                    }
                   </td>
                   <td class="text-nowrap">{{ f.uploaded_at | date: 'short' }}</td>
-                  <td class="text-end">
+                  <td class="text-end text-nowrap">
+                    @if (isImportable(f) && f.status !== 'processing') {
+                      <button type="button" class="btn btn-sm btn-outline-secondary me-1" (click)="reprocess(f)">
+                        Re-process
+                      </button>
+                    }
                     <button type="button" class="btn btn-sm btn-outline-danger" (click)="removeFile(f)">Delete</button>
                   </td>
                 </tr>
@@ -123,14 +168,18 @@ interface UploadResult {
 export class ProjectDetailComponent implements OnInit {
   private readonly projectsApi = inject(ProjectsService);
   private readonly filesApi = inject(FilesService);
+  private readonly layersApi = inject(LayersService);
   private readonly modals = inject(NgbModal);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
+  private pollSub?: Subscription;
 
   /** Bound from the `:id` route param. */
   readonly id = input.required<string>();
 
   readonly project = signal<ProjectRead | null>(null);
   readonly files = signal<ProjectFileRead[]>([]);
+  readonly layers = signal<ProjectLayers | null>(null);
   readonly error = signal<string | null>(null);
   readonly uploading = signal(false);
   readonly uploadErrors = signal<UploadResult[]>([]);
@@ -146,17 +195,37 @@ export class ProjectDetailComponent implements OnInit {
     this.load();
   }
 
+  isImportable(f: ProjectFileRead): boolean {
+    return IMPORTABLE_KINDS.includes(f.kind);
+  }
+
   load(): void {
+    this.pollSub?.unsubscribe();
     const project_id = this.id();
     forkJoin({
       project: this.projectsApi.getProject({ project_id }),
       files: this.filesApi.listFiles({ project_id }),
+      layers: this.layersApi.getLayers({ project_id }),
     }).subscribe({
-      next: ({ project, files }) => {
+      next: ({ project, files, layers }) => {
         this.project.set(project);
         this.files.set(files);
+        this.layers.set(layers);
         this.error.set(null);
+        // Processing runs in the background on the server: refresh until it finishes.
+        if (files.some((f) => f.status === 'processing')) {
+          this.pollSub = timer(POLL_MS)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe(() => this.load());
+        }
       },
+      error: (err: unknown) => this.error.set(apiErrorMessage(err)),
+    });
+  }
+
+  reprocess(file: ProjectFileRead): void {
+    this.filesApi.processFile({ project_id: this.id(), file_id: file.id }).subscribe({
+      next: () => this.load(),
       error: (err: unknown) => this.error.set(apiErrorMessage(err)),
     });
   }

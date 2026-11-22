@@ -14,6 +14,8 @@ import { deleteFile } from '../fn/files/delete-file';
 import { DeleteFile$Params } from '../fn/files/delete-file';
 import { listFiles } from '../fn/files/list-files';
 import { ListFiles$Params } from '../fn/files/list-files';
+import { processFile } from '../fn/files/process-file';
+import { ProcessFile$Params } from '../fn/files/process-file';
 import { ProjectFileRead } from '../models/project-file-read';
 import { uploadFile } from '../fn/files/upload-file';
 import { UploadFile$Params } from '../fn/files/upload-file';
@@ -89,6 +91,41 @@ export class FilesService extends BaseService {
    */
   uploadFile(params: UploadFile$Params, context?: HttpContext): Observable<ProjectFileRead> {
     const resp = this.uploadFile$Response(params, context);
+    return resp.pipe(
+      map((r: StrictHttpResponse<ProjectFileRead>): ProjectFileRead => r.body)
+    );
+  }
+
+  /** Path part for operation `processFile()` */
+  static readonly ProcessFilePath = '/projects/{project_id}/files/{file_id}/process';
+
+  /**
+   * Process File.
+   *
+   * Re-run processing of a file (e.g. after a failure or an importer update).
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `processFile()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  processFile$Response(params: ProcessFile$Params, context?: HttpContext): Observable<StrictHttpResponse<ProjectFileRead>> {
+    const obs = processFile(this.http, this.rootUrl, params, context);
+    return obs;
+  }
+
+  /**
+   * Process File.
+   *
+   * Re-run processing of a file (e.g. after a failure or an importer update).
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `processFile$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  processFile(params: ProcessFile$Params, context?: HttpContext): Observable<ProjectFileRead> {
+    const resp = this.processFile$Response(params, context);
     return resp.pipe(
       map((r: StrictHttpResponse<ProjectFileRead>): ProjectFileRead => r.body)
     );

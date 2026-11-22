@@ -45,14 +45,18 @@ class Project(Base):
     description: Mapped[str | None] = mapped_column(Text)
     status: Mapped[ProjectStatus] = mapped_column(_enum(ProjectStatus, "project_status"),
                                                   default=ProjectStatus.draft)
-    # Project boundary, EPSG:4326. Filled from the KML import (Day 2).
+    # Project boundary, EPSG:4326. Set from the Polygon placemarks of an imported KML/KMZ.
     boundary = mapped_column(Geometry("MULTIPOLYGON", srid=4326, spatial_index=False), nullable=True)
+    # File the boundary came from (cleared together with the boundary if that file is deleted).
+    boundary_file_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("project_file.id", ondelete="SET NULL", use_alter=True, name="fk_project_boundary_file"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(),
                                                  onupdate=func.now())
 
     files: Mapped[list["ProjectFile"]] = relationship(back_populates="project", cascade="all, delete-orphan",
-                                                      passive_deletes=True, order_by="ProjectFile.uploaded_at")
+                                                      passive_deletes=True, order_by="ProjectFile.uploaded_at",
+                                                      foreign_keys="ProjectFile.project_id")
 
     __table_args__ = (Index("ix_project_boundary", "boundary", postgresql_using="gist"),)
 
@@ -70,6 +74,27 @@ class ProjectFile(Base):
     sha256: Mapped[str] = mapped_column(String(64))
     status: Mapped[FileStatus] = mapped_column(_enum(FileStatus, "file_status"), default=FileStatus.uploaded)
     error: Mapped[str | None] = mapped_column(Text)
+    # Human-readable result of processing, e.g. "Boundary: 1 polygon (36.1 ha) · 1 point".
+    note: Mapped[str | None] = mapped_column(Text)
     uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    project: Mapped[Project] = relationship(back_populates="files")
+    project: Mapped[Project] = relationship(back_populates="files", foreign_keys=[project_id])
+
+
+class ProjectFeature(Base):
+    """A raw geometry imported from a project file (e.g. a KML placemark), EPSG:4326, 2D.
+
+    Not interpreted: a point is just a named point until a later stage gives it meaning.
+    """
+
+    __tablename__ = "project_feature"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("project.id", ondelete="CASCADE"), index=True)
+    source_file_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("project_file.id", ondelete="CASCADE"),
+                                                      index=True)
+    name: Mapped[str | None] = mapped_column(Text)
+    description: Mapped[str | None] = mapped_column(Text)
+    geometry = mapped_column(Geometry("GEOMETRY", srid=4326, spatial_index=False), nullable=False)
+
+    __table_args__ = (Index("ix_project_feature_geometry", "geometry", postgresql_using="gist"),)

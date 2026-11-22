@@ -58,6 +58,10 @@ def save(src: BinaryIO, project_id: uuid.UUID, file_id: uuid.UUID, filename: str
     return str(rel), size, digest.hexdigest()
 
 
+def read_bytes(stored_path: str) -> bytes:
+    return (get_settings().storage_dir / stored_path).read_bytes()
+
+
 def delete_file(stored_path: str) -> None:
     (get_settings().storage_dir / stored_path).unlink(missing_ok=True)
 
