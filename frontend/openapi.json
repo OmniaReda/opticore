@@ -560,6 +560,24 @@
         }
       }
     },
+    "/survey/template": {
+      "get": {
+        "tags": [
+          "survey"
+        ],
+        "summary": "Survey Template",
+        "description": "Empty survey Excel with the columns OPTICORE reads (fill it, then upload it to a project).",
+        "operationId": "survey_template",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}
+            }
+          }
+        }
+      }
+    },
     "/projects/{project_id}/validation": {
       "get": {
         "tags": [

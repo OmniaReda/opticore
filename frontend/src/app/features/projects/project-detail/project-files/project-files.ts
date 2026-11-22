@@ -1,6 +1,7 @@
 import { DatePipe } from '@angular/common';
-import { Component, input, output } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 
+import { ApiConfiguration } from '../../../../api/api-configuration';
 import { ProjectFileRead } from '../../../../api/models/project-file-read';
 import { FileSizePipe } from '../../../../shared/file-size-pipe';
 import {
@@ -26,6 +27,8 @@ export class ProjectFiles {
   readonly reprocess = output<ProjectFileRead>();
   readonly remove = output<ProjectFileRead>();
 
+  /** Empty survey Excel with the columns the importer reads. */
+  protected readonly surveyTemplateUrl = `${inject(ApiConfiguration).rootUrl}/survey/template`;
   protected readonly accept = ACCEPTED_FILE_TYPES;
   protected readonly kindLabel = FILE_KIND_LABEL;
   protected readonly statusLabel = FILE_STATUS_LABEL;
