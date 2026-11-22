@@ -1,0 +1,9 @@
+# Development & test tools (not needed to run the API).
+-r requirements.txt
+pytest==8.3.4
+pytest-cov==7.1.0
+httpx==0.28.1
+ruff==0.17.6
+mypy==2.4.1
+types-PyYAML==6.0.12.20250915
+lxml-stubs==0.5.1

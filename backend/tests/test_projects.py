@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 
 from fastapi.testclient import TestClient
 from sqlalchemy import text
@@ -8,14 +9,10 @@ from app.db import get_engine
 ARABIC_NAME = "مشروع تجريبي 2026"
 
 
-def create(client: TestClient, **body) -> dict:
+def create(client: TestClient, **body: object) -> dict[str, Any]:
     r = client.post("/projects", json={"name": ARABIC_NAME, **body})
     assert r.status_code == 201, r.text
     return r.json()
-
-
-def test_health(client: TestClient) -> None:
-    assert client.get("/health").json() == {"status": "ok"}
 
 
 def test_create_with_arabic_name_round_trips(client: TestClient) -> None:

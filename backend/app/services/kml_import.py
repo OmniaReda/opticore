@@ -1,4 +1,5 @@
 """Process an uploaded KML/KMZ: Polygon placemarks → project boundary, everything else → project features."""
+
 from collections import Counter
 
 from geoalchemy2.shape import from_shape
@@ -36,9 +37,16 @@ def import_kml(db: Session, record: ProjectFile) -> str:
 
     # Re-processing replaces what this file imported before.
     db.execute(delete(ProjectFeature).where(ProjectFeature.source_file_id == record.id))
-    db.add_all(ProjectFeature(project_id=record.project_id, source_file_id=record.id, name=p.name,
-                              description=p.description, geometry=from_shape(p.geometry, srid=geo.STORAGE_SRID))
-               for p in others)
+    db.add_all(
+        ProjectFeature(
+            project_id=record.project_id,
+            source_file_id=record.id,
+            name=p.name,
+            description=p.description,
+            geometry=from_shape(p.geometry, srid=geo.STORAGE_SRID),
+        )
+        for p in others
+    )
 
     parts: list[str] = []
     if polygons:
@@ -48,9 +56,10 @@ def import_kml(db: Session, record: ProjectFile) -> str:
         replaced = project.boundary is not None and project.boundary_file_id != record.id
         project.boundary = from_shape(boundary, srid=geo.STORAGE_SRID)
         project.boundary_file_id = record.id
-        parts.append(f"Boundary: {_plural(len(polygons), 'polygon')}, {geo.area_m2(boundary) / 10_000:.1f} ha, "
-                     f"perimeter {geo.length_m(boundary) / 1000:.2f} km"
-                     + (" (replaced previous boundary)" if replaced else ""))
+        parts.append(
+            f"Boundary: {_plural(len(polygons), 'polygon')}, {geo.area_m2(boundary) / 10_000:.1f} ha, "
+            f"perimeter {geo.length_m(boundary) / 1000:.2f} km" + (" (replaced previous boundary)" if replaced else "")
+        )
     else:
         parts.append("No boundary polygon in this file (project boundary unchanged)")
 
@@ -62,4 +71,3 @@ def import_kml(db: Session, record: ProjectFile) -> str:
     if content.skipped:
         parts.append(f"{content.skipped} empty/degenerate geometries skipped")
     return " · ".join(parts)
-

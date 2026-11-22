@@ -1,4 +1,5 @@
 """Background processing of uploaded files: picks the importer for the file kind and records the outcome."""
+
 import logging
 import uuid
 from collections.abc import Callable
@@ -15,8 +16,8 @@ log = logging.getLogger(__name__)
 Importer = Callable[[Session, ProjectFile], str]
 
 IMPORTERS: dict[FileKind, Importer] = {
-    **{kind: kml_import.import_kml for kind in kml_import.KML_KINDS},
-    **{kind: cad_import.import_cad for kind in cad_import.CAD_KINDS},
+    **dict.fromkeys(kml_import.KML_KINDS, kml_import.import_kml),
+    **dict.fromkeys(cad_import.CAD_KINDS, cad_import.import_cad),
 }
 
 
@@ -34,7 +35,7 @@ def process_file(file_id: uuid.UUID) -> None:
             note = IMPORTERS[record.kind](db, record)
             record.status, record.error, record.note = FileStatus.processed, None, note
             db.commit()
-        except Exception as e:  # noqa: BLE001 — any failure must end up visible on the file
+        except Exception as e:
             db.rollback()
             if isinstance(e, FileContentError):
                 message = str(e)

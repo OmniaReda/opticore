@@ -10,15 +10,15 @@ import { RequestBuilder } from '../../request-builder';
 import { ProjectFileRead } from '../../models/project-file-read';
 
 export interface ProcessFile$Params {
-  project_id: string;
   file_id: string;
+  project_id: string;
 }
 
 export function processFile(http: HttpClient, rootUrl: string, params: ProcessFile$Params, context?: HttpContext): Observable<StrictHttpResponse<ProjectFileRead>> {
   const rb = new RequestBuilder(rootUrl, processFile.PATH, 'post');
   if (params) {
-    rb.path('project_id', params.project_id, {});
     rb.path('file_id', params.file_id, {});
+    rb.path('project_id', params.project_id, {});
   }
 
   return http.request(

@@ -67,7 +67,7 @@ export class FilesService extends BaseService {
   /**
    * Upload File.
    *
-   *
+   * Store the file; KML/KMZ/DXF/DWG are then imported in the background (status `processing`).
    *
    * This method provides access to the full `HttpResponse`, allowing access to response headers.
    * To access only the response body, use `uploadFile()` instead.
@@ -82,7 +82,7 @@ export class FilesService extends BaseService {
   /**
    * Upload File.
    *
-   *
+   * Store the file; KML/KMZ/DXF/DWG are then imported in the background (status `processing`).
    *
    * This method provides access only to the response body.
    * To access the full response (for headers, for example), `uploadFile$Response()` instead.

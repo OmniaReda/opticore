@@ -3,6 +3,7 @@ import uuid
 from pathlib import Path
 
 from fastapi.testclient import TestClient
+from httpx import Response
 
 KML = b'<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"/>'
 
@@ -11,7 +12,7 @@ def new_project(client: TestClient) -> str:
     return client.post("/projects", json={"name": "مشروع تجريبي"}).json()["id"]
 
 
-def upload(client: TestClient, pid: str, name: str, content: bytes = KML):
+def upload(client: TestClient, pid: str, name: str, content: bytes = KML) -> Response:
     return client.post(f"/projects/{pid}/files", files={"file": (name, content)})
 
 

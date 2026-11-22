@@ -2,20 +2,20 @@ import enum
 import uuid
 from datetime import datetime
 
-from geoalchemy2 import Geometry
+from geoalchemy2 import Geometry, WKBElement
 from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, Index, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
 
 
-class ProjectStatus(str, enum.Enum):
+class ProjectStatus(enum.StrEnum):
     draft = "draft"
     active = "active"
     archived = "archived"
 
 
-class FileKind(str, enum.Enum):
+class FileKind(enum.StrEnum):
     kml = "kml"
     kmz = "kmz"
     dxf = "dxf"
@@ -24,17 +24,23 @@ class FileKind(str, enum.Enum):
     other = "other"
 
 
-class FileStatus(str, enum.Enum):
+class FileStatus(enum.StrEnum):
     uploaded = "uploaded"
     processing = "processing"
     processed = "processed"
     failed = "failed"
 
 
-def _enum(e: type[enum.Enum], name: str) -> Enum:
+def _enum(e: type[enum.StrEnum], name: str) -> Enum:
     # Stored as VARCHAR + CHECK constraint (easier to extend than native PG enums).
-    return Enum(e, name=name, native_enum=False, create_constraint=True, length=20,
-                values_callable=lambda cls: [m.value for m in cls])
+    return Enum(
+        e,
+        name=name,
+        native_enum=False,
+        create_constraint=True,
+        length=20,
+        values_callable=lambda cls: [m.value for m in cls],
+    )
 
 
 class Project(Base):
@@ -43,20 +49,27 @@ class Project(Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(200))
     description: Mapped[str | None] = mapped_column(Text)
-    status: Mapped[ProjectStatus] = mapped_column(_enum(ProjectStatus, "project_status"),
-                                                  default=ProjectStatus.draft)
+    status: Mapped[ProjectStatus] = mapped_column(_enum(ProjectStatus, "project_status"), default=ProjectStatus.draft)
     # Project boundary, EPSG:4326. Set from the Polygon placemarks of an imported KML/KMZ.
-    boundary = mapped_column(Geometry("MULTIPOLYGON", srid=4326, spatial_index=False), nullable=True)
+    boundary: Mapped[WKBElement | None] = mapped_column(
+        Geometry("MULTIPOLYGON", srid=4326, spatial_index=False), nullable=True
+    )
     # File the boundary came from (cleared together with the boundary if that file is deleted).
     boundary_file_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("project_file.id", ondelete="SET NULL", use_alter=True, name="fk_project_boundary_file"))
+        ForeignKey("project_file.id", ondelete="SET NULL", use_alter=True, name="fk_project_boundary_file")
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(),
-                                                 onupdate=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
-    files: Mapped[list["ProjectFile"]] = relationship(back_populates="project", cascade="all, delete-orphan",
-                                                      passive_deletes=True, order_by="ProjectFile.uploaded_at",
-                                                      foreign_keys="ProjectFile.project_id")
+    files: Mapped[list["ProjectFile"]] = relationship(
+        back_populates="project",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="ProjectFile.uploaded_at",
+        foreign_keys="ProjectFile.project_id",
+    )
 
     __table_args__ = (Index("ix_project_boundary", "boundary", postgresql_using="gist"),)
 
@@ -91,11 +104,10 @@ class ProjectFeature(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("project.id", ondelete="CASCADE"), index=True)
-    source_file_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("project_file.id", ondelete="CASCADE"),
-                                                      index=True)
+    source_file_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("project_file.id", ondelete="CASCADE"), index=True)
     name: Mapped[str | None] = mapped_column(Text)
     description: Mapped[str | None] = mapped_column(Text)
-    geometry = mapped_column(Geometry("GEOMETRY", srid=4326, spatial_index=False), nullable=False)
+    geometry: Mapped[WKBElement] = mapped_column(Geometry("GEOMETRY", srid=4326, spatial_index=False))
 
     __table_args__ = (Index("ix_project_feature_geometry", "geometry", postgresql_using="gist"),)
 
@@ -110,9 +122,8 @@ class Building(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("project.id", ondelete="CASCADE"), index=True)
-    source_file_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("project_file.id", ondelete="CASCADE"),
-                                                      index=True)
-    geometry = mapped_column(Geometry("POLYGON", srid=4326, spatial_index=False), nullable=False)
+    source_file_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("project_file.id", ondelete="CASCADE"), index=True)
+    geometry: Mapped[WKBElement] = mapped_column(Geometry("POLYGON", srid=4326, spatial_index=False))
 
     __table_args__ = (Index("ix_building_geometry", "geometry", postgresql_using="gist"),)
 
@@ -127,9 +138,7 @@ class BuildingLabel(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("project.id", ondelete="CASCADE"), index=True)
-    source_file_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("project_file.id", ondelete="CASCADE"),
-                                                      index=True)
-    building_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("building.id", ondelete="SET NULL"),
-                                                          index=True)
+    source_file_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("project_file.id", ondelete="CASCADE"), index=True)
+    building_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("building.id", ondelete="SET NULL"), index=True)
     code: Mapped[str] = mapped_column(String(50))
-    geometry = mapped_column(Geometry("POINT", srid=4326, spatial_index=False), nullable=False)
+    geometry: Mapped[WKBElement] = mapped_column(Geometry("POINT", srid=4326, spatial_index=False))

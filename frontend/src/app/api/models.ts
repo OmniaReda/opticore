@@ -12,6 +12,7 @@ export type { FeatureRead } from './models/feature-read';
 export type { FileKind } from './models/file-kind';
 export type { FileStatus } from './models/file-status';
 export type { GeoJsonGeometry } from './models/geo-json-geometry';
+export type { Health } from './models/health';
 export type { HttpValidationError } from './models/http-validation-error';
 export type { OrphanLabelRead } from './models/orphan-label-read';
 export type { ProjectCreate } from './models/project-create';

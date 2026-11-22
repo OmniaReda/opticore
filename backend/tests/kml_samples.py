@@ -3,6 +3,7 @@
 The boundary is an exact 200 m × 300 m rectangle built in UTM 36N and converted to lon/lat,
 so its area (60,000 m²) and perimeter (1,000 m) are known independently of the code under test.
 """
+
 import io
 import zipfile
 
@@ -42,18 +43,20 @@ GOOGLE_EARTH_KML = f"""<?xml version="1.0" encoding="UTF-8"?>
   </Placemark>
 </Document>
 </kml>
-""".encode("utf-8")
+""".encode()
+
+_SMALL_RING = [(_X0, _Y0), (_X0 + 5, _Y0), (_X0 + 5, _Y0 + 5), (_X0, _Y0)]
 
 # CAD-Earth style: no namespace, lines in MultiGeometry, one degenerate line, no polygon.
 CAD_EXPORT_KML = f"""<?xml version="1.0" standalone="yes"?>
 <kml><Document><name>export.dwg</name><Folder><name>Layers</name>
 <Placemark><name>طبقة المباني</name><MultiGeometry>
   <LineString><coordinates>{_lonlat([(_X0, _Y0), (_X0 + 10, _Y0)], z="")}</coordinates></LineString>
-  <LinearRing><coordinates>{_lonlat([(_X0, _Y0), (_X0 + 5, _Y0), (_X0 + 5, _Y0 + 5), (_X0, _Y0)], z="")}</coordinates></LinearRing>
+  <LinearRing><coordinates>{_lonlat(_SMALL_RING, z="")}</coordinates></LinearRing>
   <LineString><coordinates>{_lonlat([(_X0, _Y0)], z="")}</coordinates></LineString>
 </MultiGeometry></Placemark>
 </Folder></Document></kml>
-""".encode("utf-8")
+""".encode()
 
 # Self-intersecting "bow-tie" boundary.
 _BOWTIE = [(_X0, _Y0), (_X0 + 100, _Y0 + 100), (_X0 + 100, _Y0), (_X0, _Y0 + 100), (_X0, _Y0)]
@@ -61,7 +64,7 @@ INVALID_POLYGON_KML = f"""<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2"><Document><Placemark><name>bad</name>
 <Polygon><outerBoundaryIs><LinearRing><coordinates>{_lonlat(_BOWTIE)}</coordinates></LinearRing></outerBoundaryIs></Polygon>
 </Placemark></Document></kml>
-""".encode("utf-8")
+""".encode()
 
 EMPTY_KML = b'<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document/></kml>'
 

@@ -3,6 +3,7 @@
 The most recently imported drawing is THE building layer of the project: importing a drawing
 replaces the buildings that came from any earlier drawing.
 """
+
 import tempfile
 from collections import Counter
 from pathlib import Path
@@ -40,20 +41,32 @@ def import_cad(db: Session, record: ProjectFile) -> str:
 
     # Lock the project row: two drawings processed at once must not mix their buildings.
     db.get_one(Project, record.project_id, with_for_update=True)
-    previous = db.scalars(select(Building.source_file_id).where(Building.project_id == record.project_id)
-                          .distinct()).all()
+    previous = db.scalars(
+        select(Building.source_file_id).where(Building.project_id == record.project_id).distinct()
+    ).all()
     db.execute(delete(BuildingLabel).where(BuildingLabel.project_id == record.project_id))
     db.execute(delete(Building).where(Building.project_id == record.project_id))
 
-    buildings = [Building(project_id=record.project_id, source_file_id=record.id,
-                          geometry=from_shape(transform(_to_storage, p), srid=geo.STORAGE_SRID))
-                 for p in result.polygons]
+    buildings = [
+        Building(
+            project_id=record.project_id,
+            source_file_id=record.id,
+            geometry=from_shape(transform(_to_storage, p), srid=geo.STORAGE_SRID),
+        )
+        for p in result.polygons
+    ]
     db.add_all(buildings)
     db.flush()  # assign building ids for the labels
-    db.add_all(BuildingLabel(project_id=record.project_id, source_file_id=record.id, code=lab.building_id,
-                             building_id=None if lab.building_index is None else buildings[lab.building_index].id,
-                             geometry=from_shape(transform(_to_storage, lab.point), srid=geo.STORAGE_SRID))
-               for lab in result.labels)
+    db.add_all(
+        BuildingLabel(
+            project_id=record.project_id,
+            source_file_id=record.id,
+            code=lab.building_id,
+            building_id=None if lab.building_index is None else buildings[lab.building_index].id,
+            geometry=from_shape(transform(_to_storage, lab.point), srid=geo.STORAGE_SRID),
+        )
+        for lab in result.labels
+    )
 
     per_building = Counter(lab.building_index for lab in result.labels if lab.building_index is not None)
     one = sum(1 for n in per_building.values() if n == 1)
@@ -61,10 +74,12 @@ def import_cad(db: Session, record: ProjectFile) -> str:
     orphans = sum(1 for lab in result.labels if lab.building_index is None)
     duplicates = sum(1 for n in Counter(lab.building_id for lab in result.labels).values() if n > 1)
 
-    parts = [f"Layers: {result.profile.name}",
-             f"{len(result.polygons)} buildings: {one} with 1 ID, {several} with several IDs, "
-             f"{len(result.polygons) - len(per_building)} without ID",
-             f"{orphans} IDs outside any building"]
+    parts = [
+        f"Layers: {result.profile.name}",
+        f"{len(result.polygons)} buildings: {one} with 1 ID, {several} with several IDs, "
+        f"{len(result.polygons) - len(per_building)} without ID",
+        f"{orphans} IDs outside any building",
+    ]
     if duplicates:
         parts.append(f"{duplicates} IDs used more than once")
     if result.unreadable_labels:

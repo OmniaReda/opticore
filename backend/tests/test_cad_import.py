@@ -1,6 +1,8 @@
 """DXF/DWG upload → background processing → buildings + Building IDs with review status."""
+
 import sys
 from pathlib import Path
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -13,13 +15,13 @@ from tests import kml_samples as ks
 from tests.test_kml_import import file_state, new_project, upload
 
 
-def buildings(client: TestClient, pid: str) -> dict:
+def buildings(client: TestClient, pid: str) -> dict[str, Any]:
     r = client.get(f"/projects/{pid}/buildings")
     assert r.status_code == 200, r.text
     return r.json()
 
 
-def by_code(layer: dict) -> dict[str, dict]:
+def by_code(layer: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return {",".join(b["codes"]): b for b in layer["buildings"]}
 
 
@@ -29,14 +31,24 @@ def test_dxf_buildings_and_review_status(client: TestClient) -> None:
 
     state = file_state(client, pid, f["id"])
     assert state["status"] == "processed", state
-    assert state["note"] == ("Layers: validated_drawing · 6 buildings: 4 with 1 ID, 1 with several IDs, 1 without ID"
-                             " · 1 IDs outside any building · 1 unreadable ID labels")
+    assert state["note"] == (
+        "Layers: validated_drawing · 6 buildings: 4 with 1 ID, 1 with several IDs, 1 without ID"
+        " · 1 IDs outside any building · 1 unreadable ID labels"
+    )
 
     layer = buildings(client, pid)
     assert layer["source_file_id"] == f["id"]
     assert layer["provisional"] is True  # rules file is status: TBC
-    assert layer["summary"] == {"total": 6, "ok": 4, "multiple_ids": 1, "no_id": 1, "orphan_ids": 1,
-                                "inside": None, "crossing": None, "outside": None}  # no boundary yet
+    assert layer["summary"] == {
+        "total": 6,
+        "ok": 4,
+        "multiple_ids": 1,
+        "no_id": 1,
+        "orphan_ids": 1,
+        "inside": None,
+        "crossing": None,
+        "outside": None,
+    }  # no boundary yet
     b = by_code(layer)
     assert set(b) == {"1", "2", "3,3-2", "5", "6", ""}
     assert b["1"]["status"] == "ok"
@@ -102,11 +114,14 @@ def test_reprocess_dxf(client: TestClient) -> None:
     assert buildings(client, pid)["summary"]["total"] == 6  # not duplicated
 
 
-@pytest.mark.parametrize(("content", "message"), [
-    (cs.unknown_layers_drawing(), "No known building/ID layers in this drawing"),
-    (cs.local_coordinates_drawing(), "do not look like UTM zone 36N metres"),
-    (b"this is not a drawing", "Not a readable DXF file"),
-])
+@pytest.mark.parametrize(
+    ("content", "message"),
+    [
+        (cs.unknown_layers_drawing(), "No known building/ID layers in this drawing"),
+        (cs.local_coordinates_drawing(), "do not look like UTM zone 36N metres"),
+        (b"this is not a drawing", "Not a readable DXF file"),
+    ],
+)
 def test_bad_drawings_fail_with_clear_message(client: TestClient, content: bytes, message: str) -> None:
     pid = new_project(client)
     f = upload(client, pid, "bad.dxf", content)
@@ -140,8 +155,9 @@ def fake_converter(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> list[str]
     script.write_text(FAKE_CONVERTER, encoding="utf-8")
     mode: list[str] = ["ok"]
     monkeypatch.setattr(get_settings(), "dwg2dxf_path", Path(sys.executable))
-    monkeypatch.setattr(dwg, "build_argv", lambda exe, src, dst: [str(exe), str(script), mode[0], "-o", str(dst),
-                                                                    str(src)])
+    monkeypatch.setattr(
+        dwg, "build_argv", lambda exe, src, dst: [str(exe), str(script), mode[0], "-o", str(dst), str(src)]
+    )
     return mode
 
 
@@ -174,11 +190,20 @@ def test_dwg_conversion_failure(client: TestClient, fake_converter: list[str]) -
 
 # --- rules file ---
 
+
 def test_rules_file_requires_metadata_and_capture_group() -> None:
-    base = {"source": "test", "approved_by": None, "status": "TBC", "min_building_area_m2": 5,
-            "profiles": [{"name": "p", "building_layer": "b", "id_layer": "i", "id_pattern": r"^(\d+)$"}]}
+    base: dict[str, Any] = {
+        "source": "test",
+        "approved_by": None,
+        "status": "TBC",
+        "min_building_area_m2": 5,
+        "profiles": [{"name": "p", "building_layer": "b", "id_layer": "i", "id_pattern": r"^(\d+)$"}],
+    }
     assert CadLayerRules.model_validate(base).provisional is True
-    for broken in ({**base, "status": "maybe"}, {k: v for k, v in base.items() if k != "source"},
-                   {**base, "profiles": [{**base["profiles"][0], "id_pattern": r"^\d+$"}]}):
+    for broken in (
+        {**base, "status": "maybe"},
+        {k: v for k, v in base.items() if k != "source"},
+        {**base, "profiles": [{**base["profiles"][0], "id_pattern": r"^\d+$"}]},
+    ):
         with pytest.raises(ValueError):
             CadLayerRules.model_validate(broken)
