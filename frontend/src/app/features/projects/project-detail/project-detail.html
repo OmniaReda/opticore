@@ -30,6 +30,7 @@
     <app-project-map
       [layers]="store.layers()"
       [buildings]="store.buildings()"
+      [survey]="store.surveyByCode()"
       [visible]="visible()"
     />
     @if (store.buildings(); as buildings) {
@@ -40,6 +41,12 @@
       }
     }
   </section>
+
+  @if (store.survey(); as survey) {
+    @if (survey.summary.rows) {
+      <app-survey-summary [survey]="survey" />
+    }
+  }
 
   <app-project-files
     [files]="store.files()"

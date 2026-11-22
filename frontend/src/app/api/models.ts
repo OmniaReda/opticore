@@ -21,4 +21,7 @@ export type { ProjectLayers } from './models/project-layers';
 export type { ProjectRead } from './models/project-read';
 export type { ProjectStatus } from './models/project-status';
 export type { ProjectUpdate } from './models/project-update';
+export type { SurveyLayer } from './models/survey-layer';
+export type { SurveyRecordRead } from './models/survey-record-read';
+export type { SurveySummary } from './models/survey-summary';
 export type { ValidationError } from './models/validation-error';

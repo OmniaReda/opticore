@@ -1,0 +1,4 @@
+# Normalise line endings (Prettier / ruff write LF; avoids CRLF-only diffs on Windows).
+* text=auto eol=lf
+*.png binary
+*.jpg binary

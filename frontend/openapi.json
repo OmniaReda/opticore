@@ -515,6 +515,50 @@
           }
         }
       }
+    },
+    "/projects/{project_id}/survey": {
+      "get": {
+        "tags": [
+          "survey"
+        ],
+        "summary": "Get Survey",
+        "description": "Survey rows of the latest imported survey Excel, linked to the drawing's Building IDs.",
+        "operationId": "get_survey",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SurveyLayer"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1139,6 +1183,411 @@
         "type": "object",
         "title": "ProjectUpdate",
         "description": "Partial update: only fields that are sent are changed. name / status may be omitted, not null."
+      },
+      "SurveyLayer": {
+        "properties": {
+          "source_file_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source File Id",
+            "description": "Survey file the rows were imported from"
+          },
+          "provisional": {
+            "type": "boolean",
+            "title": "Provisional",
+            "description": "True while the survey column rules are not approved (status TBC)"
+          },
+          "has_drawing": {
+            "type": "boolean",
+            "title": "Has Drawing",
+            "description": "False until a drawing with Building IDs is imported"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/SurveySummary"
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/SurveyRecordRead"
+            },
+            "type": "array",
+            "title": "Records"
+          },
+          "not_in_drawing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Not In Drawing",
+            "description": "Survey Building IDs missing on the drawing"
+          },
+          "drawing_ids_without_survey": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Drawing Ids Without Survey",
+            "description": "Drawing Building IDs missing in the survey"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source_file_id",
+          "provisional",
+          "has_drawing",
+          "summary",
+          "records",
+          "not_in_drawing",
+          "drawing_ids_without_survey"
+        ],
+        "title": "SurveyLayer"
+      },
+      "SurveyRecordRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "row_number": {
+            "type": "integer",
+            "title": "Row Number",
+            "description": "Row number in the Excel sheet"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "Building ID"
+          },
+          "in_drawing": {
+            "type": "boolean",
+            "title": "In Drawing",
+            "description": "The Building ID exists on the imported drawing",
+            "default": false
+          },
+          "visit_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Visit Date"
+          },
+          "street_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Street Name"
+          },
+          "building_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Building Name"
+          },
+          "building_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Building Number"
+          },
+          "latitude": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latitude"
+          },
+          "longitude": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Longitude"
+          },
+          "floors": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Floors"
+          },
+          "users_per_floor": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Users Per Floor"
+          },
+          "gf_users": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gf Users"
+          },
+          "total_users": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Users"
+          },
+          "hp_te_required": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hp Te Required"
+          },
+          "comments": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comments"
+          },
+          "sub_category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sub Category"
+          },
+          "final_category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Final Category"
+          },
+          "placemark_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Placemark Id"
+          },
+          "entrance_length_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entrance Length M"
+          },
+          "entrance_marked": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entrance Marked"
+          },
+          "msan_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Msan Note"
+          },
+          "void_core": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Void Core"
+          },
+          "hp_count": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hp Count"
+          },
+          "qty_home_pass": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qty Home Pass"
+          },
+          "te_comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Te Comment"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "row_number",
+          "code",
+          "visit_date",
+          "street_name",
+          "building_name",
+          "building_number",
+          "latitude",
+          "longitude",
+          "floors",
+          "users_per_floor",
+          "gf_users",
+          "total_users",
+          "hp_te_required",
+          "comments",
+          "sub_category",
+          "final_category",
+          "placemark_id",
+          "entrance_length_m",
+          "entrance_marked",
+          "msan_note",
+          "void_core",
+          "hp_count",
+          "qty_home_pass",
+          "te_comment"
+        ],
+        "title": "SurveyRecordRead",
+        "description": "One survey Excel row (personal data excluded)."
+      },
+      "SurveySummary": {
+        "properties": {
+          "rows": {
+            "type": "integer",
+            "title": "Rows"
+          },
+          "in_drawing": {
+            "type": "integer",
+            "title": "In Drawing",
+            "description": "Rows whose Building ID is on the drawing"
+          },
+          "not_in_drawing": {
+            "type": "integer",
+            "title": "Not In Drawing",
+            "description": "Rows whose Building ID is not on the drawing"
+          },
+          "drawing_ids_without_survey": {
+            "type": "integer",
+            "title": "Drawing Ids Without Survey",
+            "description": "Building IDs on the drawing with no survey row"
+          },
+          "missing_gps": {
+            "type": "integer",
+            "title": "Missing Gps",
+            "description": "Rows without valid GPS"
+          },
+          "total_users": {
+            "type": "integer",
+            "title": "Total Users",
+            "description": "Sum of Total Users"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rows",
+          "in_drawing",
+          "not_in_drawing",
+          "drawing_ids_without_survey",
+          "missing_gps",
+          "total_users"
+        ],
+        "title": "SurveySummary"
       },
       "ValidationError": {
         "properties": {

@@ -13,11 +13,20 @@ import { ProjectDetailStore } from './project-detail-store';
 import { ProjectFiles } from './project-files/project-files';
 import { ProjectHeader } from './project-header/project-header';
 import { ProjectMap } from './project-map/project-map';
+import { SurveySummary } from './survey-summary/survey-summary';
 
 /** Project page: header, map with buildings, uploaded files. State lives in ProjectDetailStore. */
 @Component({
   selector: 'app-project-detail',
-  imports: [RouterLink, DecimalPipe, ProjectHeader, ProjectMap, BuildingLegend, ProjectFiles],
+  imports: [
+    RouterLink,
+    DecimalPipe,
+    ProjectHeader,
+    ProjectMap,
+    BuildingLegend,
+    SurveySummary,
+    ProjectFiles,
+  ],
   providers: [ProjectDetailStore],
   templateUrl: './project-detail.html',
 })
