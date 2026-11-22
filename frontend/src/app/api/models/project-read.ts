@@ -6,6 +6,7 @@ export interface ProjectRead {
   created_at: string;
   description: (string | null);
   file_count: number;
+  has_boundary: boolean;
   id: string;
   name: string;
   status: ProjectStatus;

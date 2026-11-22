@@ -15,7 +15,11 @@ export type { ListFiles$Params as ListFiles$Params } from './fn/files/list-files
 export { listFiles as listFiles } from './fn/files/list-files';
 export type { UploadFile$Params as UploadFile$Params } from './fn/files/upload-file';
 export { uploadFile as uploadFile } from './fn/files/upload-file';
+export type { ProcessFile$Params as ProcessFile$Params } from './fn/files/process-file';
+export { processFile as processFile } from './fn/files/process-file';
 export type { DeleteFile$Params as DeleteFile$Params } from './fn/files/delete-file';
 export { deleteFile as deleteFile } from './fn/files/delete-file';
+export type { GetLayers$Params as GetLayers$Params } from './fn/layers/get-layers';
+export { getLayers as getLayers } from './fn/layers/get-layers';
 export type { Health$Params as Health$Params } from './fn/health/health';
 export { health as health } from './fn/health/health';

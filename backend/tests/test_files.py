@@ -24,7 +24,7 @@ def test_upload_arabic_filename(client: TestClient, storage_dir: Path) -> None:
     assert f["original_filename"] == "حدود المنطقة.KML"
     assert f["size_bytes"] == len(KML)
     assert f["sha256"] == hashlib.sha256(KML).hexdigest()
-    assert f["status"] == "uploaded"
+    assert f["status"] == "processing"  # KML is imported automatically (see test_kml_import.py)
 
     # Stored under a safe name (file id), content intact.
     stored = storage_dir / "projects" / pid / f"{f['id']}.kml"

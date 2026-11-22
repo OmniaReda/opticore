@@ -295,6 +295,60 @@
         }
       }
     },
+    "/projects/{project_id}/files/{file_id}/process": {
+      "post": {
+        "tags": [
+          "files"
+        ],
+        "summary": "Process File",
+        "description": "Re-run processing of a file (e.g. after a failure or an importer update).",
+        "operationId": "process_file",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "file_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "File Id"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectFileRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/projects/{project_id}/files/{file_id}": {
       "delete": {
         "tags": [
@@ -327,6 +381,50 @@
         "responses": {
           "204": {
             "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{project_id}/layers": {
+      "get": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Get Layers",
+        "description": "Everything to draw on the project map: boundary + imported features (EPSG:4326 GeoJSON).",
+        "operationId": "get_layers",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectLayers"
+                }
+              }
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -383,6 +481,91 @@
         ],
         "title": "Body_upload_file"
       },
+      "BoundaryRead": {
+        "properties": {
+          "geometry": {
+            "$ref": "#/components/schemas/GeoJsonGeometry"
+          },
+          "source_file_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source File Id"
+          },
+          "area_m2": {
+            "type": "number",
+            "title": "Area M2",
+            "description": "Measured in EPSG:32636 (UTM 36N)"
+          },
+          "perimeter_m": {
+            "type": "number",
+            "title": "Perimeter M",
+            "description": "Measured in EPSG:32636 (UTM 36N)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "geometry",
+          "source_file_id",
+          "area_m2",
+          "perimeter_m"
+        ],
+        "title": "BoundaryRead"
+      },
+      "FeatureRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "source_file_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Source File Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/GeoJsonGeometry"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "source_file_id",
+          "name",
+          "description",
+          "geometry"
+        ],
+        "title": "FeatureRead"
+      },
       "FileKind": {
         "type": "string",
         "enum": [
@@ -404,6 +587,26 @@
           "failed"
         ],
         "title": "FileStatus"
+      },
+      "GeoJsonGeometry": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "coordinates": {
+            "items": {},
+            "type": "array",
+            "title": "Coordinates"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "coordinates"
+        ],
+        "title": "GeoJsonGeometry",
+        "description": "GeoJSON geometry in EPSG:4326 (lon, lat)."
       },
       "HTTPValidationError": {
         "properties": {
@@ -485,6 +688,17 @@
             ],
             "title": "Error"
           },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
           "uploaded_at": {
             "type": "string",
             "format": "date-time",
@@ -501,9 +715,37 @@
           "sha256",
           "status",
           "error",
+          "note",
           "uploaded_at"
         ],
         "title": "ProjectFileRead"
+      },
+      "ProjectLayers": {
+        "properties": {
+          "boundary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BoundaryRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/FeatureRead"
+            },
+            "type": "array",
+            "title": "Features"
+          }
+        },
+        "type": "object",
+        "required": [
+          "boundary",
+          "features"
+        ],
+        "title": "ProjectLayers"
       },
       "ProjectRead": {
         "properties": {
@@ -534,6 +776,10 @@
             "type": "integer",
             "title": "File Count"
           },
+          "has_boundary": {
+            "type": "boolean",
+            "title": "Has Boundary"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -552,6 +798,7 @@
           "description",
           "status",
           "file_count",
+          "has_boundary",
           "created_at",
           "updated_at"
         ],
