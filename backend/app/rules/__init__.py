@@ -7,10 +7,10 @@ and whether they are confirmed (`status: approved`) or still provisional (`statu
 import re
 from functools import lru_cache
 from pathlib import Path
-from typing import Annotated, Any, Literal, cast
+from typing import Annotated, Any, Literal, Self, cast
 
 import yaml
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
 RULES_DIR = Path(__file__).resolve().parent
 
@@ -62,3 +62,51 @@ def _load(name: str) -> dict[str, Any]:
 @lru_cache
 def cad_layers() -> CadLayerRules:
     return CadLayerRules.model_validate(_load("cad_layers.yaml"))
+
+
+SurveyField = Literal[
+    "code",
+    "visit_date",
+    "street_name",
+    "building_name",
+    "building_number",
+    "latitude",
+    "longitude",
+    "floors",
+    "users_per_floor",
+    "gf_users",
+    "total_users",
+    "hp_te_required",
+    "comments",
+    "sub_category",
+    "final_category",
+    "placemark_id",
+    "entrance_length_m",
+    "entrance_marked",
+    "msan_note",
+    "void_core",
+    "hp_count",
+    "qty_home_pass",
+    "te_comment",
+]
+
+
+class SurveyColumnRules(RulesFile):
+    sheet: str = Field(min_length=1)
+    header_row: int = Field(ge=1)
+    columns: dict[SurveyField, str]
+    required: list[SurveyField]
+
+    @model_validator(mode="after")
+    def _required_columns_are_mapped(self) -> Self:
+        if "code" not in self.required:
+            raise ValueError("'code' (Building ID) must be required")
+        unmapped = [f for f in self.required if f not in self.columns]
+        if unmapped:
+            raise ValueError(f"required fields without a column: {unmapped}")
+        return self
+
+
+@lru_cache
+def survey_columns() -> SurveyColumnRules:
+    return SurveyColumnRules.model_validate(_load("survey_columns.yaml"))

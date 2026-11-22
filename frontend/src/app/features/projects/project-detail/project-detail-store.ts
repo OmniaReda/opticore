@@ -5,14 +5,16 @@ import { Observable, catchError, concatMap, finalize, forkJoin, from, map, of } 
 import { FileKind } from '../../../api/models/file-kind';
 import { ProjectFileRead } from '../../../api/models/project-file-read';
 import { ProjectRead } from '../../../api/models/project-read';
+import { SurveyRecordRead } from '../../../api/models/survey-record-read';
 import { BuildingsService } from '../../../api/services/buildings.service';
 import { FilesService } from '../../../api/services/files.service';
 import { LayersService } from '../../../api/services/layers.service';
 import { ProjectsService } from '../../../api/services/projects.service';
+import { SurveyService } from '../../../api/services/survey.service';
 import { apiErrorMessage } from '../../../shared/api-error';
 
 /** File kinds the backend processes automatically (see backend/app/services/processing.py). */
-export const IMPORTABLE_KINDS: readonly FileKind[] = ['kml', 'kmz', 'dxf', 'dwg'];
+export const IMPORTABLE_KINDS: readonly FileKind[] = ['kml', 'kmz', 'dxf', 'dwg', 'survey_xlsx'];
 
 /** How often to refresh while a file is processed in the background. */
 export const POLL_MS = 1500;
@@ -29,6 +31,7 @@ export class ProjectDetailStore {
   private readonly filesApi = inject(FilesService);
   private readonly layersApi = inject(LayersService);
   private readonly buildingsApi = inject(BuildingsService);
+  private readonly surveyApi = inject(SurveyService);
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly projectId = signal<string | undefined>(undefined);
@@ -41,6 +44,7 @@ export class ProjectDetailStore {
         files: this.filesApi.listFiles({ project_id }),
         layers: this.layersApi.getLayers({ project_id }),
         buildings: this.buildingsApi.getBuildings({ project_id }),
+        survey: this.surveyApi.getSurvey({ project_id }),
       }),
   });
 
@@ -52,6 +56,11 @@ export class ProjectDetailStore {
   readonly files = computed(() => this.data()?.files ?? []);
   readonly layers = computed(() => this.data()?.layers ?? null);
   readonly buildings = computed(() => this.data()?.buildings ?? null);
+  readonly survey = computed(() => this.data()?.survey ?? null);
+  /** Survey row per Building ID (for the map tooltip). */
+  readonly surveyByCode = computed(
+    () => new Map<string, SurveyRecordRead>((this.survey()?.records ?? []).map((r) => [r.code, r])),
+  );
 
   private readonly actionError = signal<string | null>(null);
   readonly error = computed(() => {

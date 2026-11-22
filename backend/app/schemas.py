@@ -1,6 +1,6 @@
 import enum
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated, Any, Self
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
@@ -131,3 +131,55 @@ class BuildingLayer(BaseModel):
     summary: BuildingSummary
     buildings: list[BuildingRead]
     orphan_labels: list[OrphanLabelRead]
+
+
+class SurveyRecordRead(BaseModel):
+    """One survey Excel row (personal data excluded)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    row_number: int = Field(description="Row number in the Excel sheet")
+    code: str = Field(description="Building ID")
+    in_drawing: bool = Field(default=False, description="The Building ID exists on the imported drawing")
+    visit_date: date | None
+    street_name: str | None
+    building_name: str | None
+    building_number: str | None
+    latitude: float | None
+    longitude: float | None
+    floors: int | None
+    users_per_floor: int | None
+    gf_users: int | None
+    total_users: int | None
+    hp_te_required: int | None
+    comments: str | None
+    sub_category: str | None
+    final_category: str | None
+    placemark_id: str | None
+    entrance_length_m: float | None
+    entrance_marked: str | None
+    msan_note: str | None
+    void_core: str | None
+    hp_count: str | None
+    qty_home_pass: int | None
+    te_comment: str | None
+
+
+class SurveySummary(BaseModel):
+    rows: int
+    in_drawing: int = Field(description="Rows whose Building ID is on the drawing")
+    not_in_drawing: int = Field(description="Rows whose Building ID is not on the drawing")
+    drawing_ids_without_survey: int = Field(description="Building IDs on the drawing with no survey row")
+    missing_gps: int = Field(description="Rows without valid GPS")
+    total_users: int = Field(description="Sum of Total Users")
+
+
+class SurveyLayer(BaseModel):
+    source_file_id: uuid.UUID | None = Field(description="Survey file the rows were imported from")
+    provisional: bool = Field(description="True while the survey column rules are not approved (status TBC)")
+    has_drawing: bool = Field(description="False until a drawing with Building IDs is imported")
+    summary: SurveySummary
+    records: list[SurveyRecordRead]
+    not_in_drawing: list[str] = Field(description="Survey Building IDs missing on the drawing")
+    drawing_ids_without_survey: list[str] = Field(description="Drawing Building IDs missing in the survey")

@@ -1,0 +1,51 @@
+@let s = survey().summary;
+<section class="card mb-4" aria-labelledby="survey-title">
+  <div class="card-header d-flex align-items-center gap-2">
+    <h2 id="survey-title" class="h6 fw-semibold mb-0 me-auto">Survey</h2>
+    @if (survey().provisional) {
+      <span
+        class="badge text-bg-warning"
+        title="Survey column rules (backend/app/rules/survey_columns.yaml) are status TBC"
+      >
+        Provisional rules
+      </span>
+    }
+  </div>
+  <div class="card-body">
+    <dl class="row mb-0 small">
+      <dt class="col-sm-4">Survey rows</dt>
+      <dd class="col-sm-8">{{ s.rows | number }}</dd>
+      <dt class="col-sm-4">Total users</dt>
+      <dd class="col-sm-8">{{ s.total_users | number }}</dd>
+      <dt class="col-sm-4">Rows without valid GPS</dt>
+      <dd class="col-sm-8" [class.text-danger]="s.missing_gps > 0">{{ s.missing_gps | number }}</dd>
+
+      @if (survey().has_drawing) {
+        <dt class="col-sm-4">Building ID on the drawing</dt>
+        <dd class="col-sm-8">{{ s.in_drawing | number }} of {{ s.rows | number }} rows</dd>
+
+        <dt class="col-sm-4">Survey IDs not on the drawing</dt>
+        <dd class="col-sm-8" [class.text-danger]="s.not_in_drawing > 0">
+          {{ s.not_in_drawing | number }}
+          @if (survey().not_in_drawing.length) {
+            <div class="text-muted" dir="ltr">{{ listed(survey().not_in_drawing) }}</div>
+          }
+        </dd>
+
+        <dt class="col-sm-4">Drawing IDs without a survey row</dt>
+        <dd class="col-sm-8" [class.text-danger]="s.drawing_ids_without_survey > 0">
+          {{ s.drawing_ids_without_survey | number }}
+          @if (survey().drawing_ids_without_survey.length) {
+            <div class="text-muted" dir="ltr">
+              {{ listed(survey().drawing_ids_without_survey) }}
+            </div>
+          }
+        </dd>
+      } @else {
+        <dd class="col-12 text-muted mb-0">
+          Upload the drawing (DXF/DWG) to link survey rows to buildings.
+        </dd>
+      }
+    </dl>
+  </div>
+</section>

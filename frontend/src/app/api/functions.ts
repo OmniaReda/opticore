@@ -25,3 +25,5 @@ export type { GetLayers$Params as GetLayers$Params } from './fn/layers/get-layer
 export { getLayers as getLayers } from './fn/layers/get-layers';
 export type { GetBuildings$Params as GetBuildings$Params } from './fn/buildings/get-buildings';
 export { getBuildings as getBuildings } from './fn/buildings/get-buildings';
+export type { GetSurvey$Params as GetSurvey$Params } from './fn/survey/get-survey';
+export { getSurvey as getSurvey } from './fn/survey/get-survey';

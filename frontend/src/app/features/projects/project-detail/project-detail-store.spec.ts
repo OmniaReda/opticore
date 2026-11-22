@@ -10,6 +10,7 @@ import {
   sampleBuildings,
   sampleFile,
   sampleProject,
+  sampleSurvey,
 } from '../../../testing/fixtures';
 import { POLL_MS, ProjectDetailStore } from './project-detail-store';
 
@@ -44,22 +45,24 @@ describe('ProjectDetailStore', () => {
     TestBed.tick();
   }
 
-  /** Answers the four requests of one page load. */
+  /** Answers the five requests of one page load. */
   async function respond(files: ProjectFileRead[]): Promise<void> {
     await settle();
     http.expectOne(BASE).flush(sampleProject());
     http.expectOne(`${BASE}/files`).flush(files);
     http.expectOne(`${BASE}/layers`).flush(EMPTY_LAYERS);
     http.expectOne(`${BASE}/buildings`).flush(sampleBuildings());
+    http.expectOne(`${BASE}/survey`).flush(sampleSurvey());
     await settle();
   }
 
-  it('loads project, files, layers and buildings together', async () => {
+  it('loads project, files, layers, buildings and survey together', async () => {
     store.load(PROJECT_ID);
     await respond([sampleFile()]);
     expect(store.project()?.name).toBe('مشروع تجريبي');
     expect(store.files()).toHaveLength(1);
     expect(store.buildings()?.summary.total).toBe(6);
+    expect(store.surveyByCode().get('1')?.total_users).toBe(10);
     expect(store.error()).toBeNull();
   });
 
@@ -80,8 +83,8 @@ describe('ProjectDetailStore', () => {
     store.load(PROJECT_ID);
     await settle();
     http.expectOne(BASE).flush({ detail: 'Project not found' }, { status: 404, statusText: 'NF' });
-    // forkJoin cancels the other three requests once one fails.
-    for (const url of [`${BASE}/files`, `${BASE}/layers`, `${BASE}/buildings`]) {
+    // forkJoin cancels the other requests once one fails.
+    for (const url of [`${BASE}/files`, `${BASE}/layers`, `${BASE}/buildings`, `${BASE}/survey`]) {
       expect(http.match(url).every((r) => r.cancelled)).toBe(true);
     }
     await settle();

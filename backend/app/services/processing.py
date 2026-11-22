@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.db import get_sessionmaker
 from app.importers import FileContentError
 from app.models import FileKind, FileStatus, ProjectFile
-from app.services import cad_import, kml_import
+from app.services import cad_import, kml_import, survey_import
 
 log = logging.getLogger(__name__)
 
@@ -18,6 +18,7 @@ Importer = Callable[[Session, ProjectFile], str]
 IMPORTERS: dict[FileKind, Importer] = {
     **dict.fromkeys(kml_import.KML_KINDS, kml_import.import_kml),
     **dict.fromkeys(cad_import.CAD_KINDS, cad_import.import_cad),
+    **dict.fromkeys(survey_import.SURVEY_KINDS, survey_import.import_survey),
 }
 
 

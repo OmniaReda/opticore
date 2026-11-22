@@ -1,6 +1,6 @@
 import enum
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from geoalchemy2 import Geometry, WKBElement
 from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, Index, String, Text, func
@@ -142,3 +142,44 @@ class BuildingLabel(Base):
     building_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("building.id", ondelete="SET NULL"), index=True)
     code: Mapped[str] = mapped_column(String(50))
     geometry: Mapped[WKBElement] = mapped_column(Geometry("POINT", srid=4326, spatial_index=False))
+
+
+class SurveyRecord(Base):
+    """One row of the field-survey Excel. Linked to buildings by `code` (= Building ID label on the drawing).
+
+    Personal data in the Excel (surveyor / TE representative names) is deliberately not stored.
+    """
+
+    __tablename__ = "survey_record"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("project.id", ondelete="CASCADE"), index=True)
+    source_file_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("project_file.id", ondelete="CASCADE"), index=True)
+    row_number: Mapped[int]
+    code: Mapped[str] = mapped_column(String(50), index=True)
+    visit_date: Mapped[date | None]
+    street_name: Mapped[str | None] = mapped_column(Text)
+    building_name: Mapped[str | None] = mapped_column(Text)
+    building_number: Mapped[str | None] = mapped_column(String(50))
+    latitude: Mapped[float | None]
+    longitude: Mapped[float | None]
+    floors: Mapped[int | None]
+    users_per_floor: Mapped[int | None]
+    gf_users: Mapped[int | None]
+    total_users: Mapped[int | None]
+    hp_te_required: Mapped[int | None]
+    comments: Mapped[str | None] = mapped_column(Text)
+    sub_category: Mapped[str | None] = mapped_column(String(100))
+    final_category: Mapped[str | None] = mapped_column(String(100))
+    placemark_id: Mapped[str | None] = mapped_column(String(100))
+    entrance_length_m: Mapped[float | None]
+    entrance_marked: Mapped[str | None] = mapped_column(String(20))
+    msan_note: Mapped[str | None] = mapped_column(String(50))
+    void_core: Mapped[str | None] = mapped_column(String(20))
+    hp_count: Mapped[str | None] = mapped_column(String(20))
+    qty_home_pass: Mapped[int | None]
+    te_comment: Mapped[str | None] = mapped_column(Text)
+    # GPS point (lon/lat) when latitude/longitude are valid.
+    geometry: Mapped[WKBElement | None] = mapped_column(Geometry("POINT", srid=4326, spatial_index=False))
+
+    __table_args__ = (Index("ix_survey_record_geometry", "geometry", postgresql_using="gist"),)

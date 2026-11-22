@@ -24,6 +24,7 @@ import VectorSource from 'ol/source/Vector';
 import { BuildingLayer } from '../../../../api/models/building-layer';
 import { GeoJsonGeometry } from '../../../../api/models/geo-json-geometry';
 import { ProjectLayers } from '../../../../api/models/project-layers';
+import { SurveyRecordRead } from '../../../../api/models/survey-record-read';
 import { BUILDING_REVIEW_KEYS, BuildingReviewKey } from '../../../../shared/labels';
 import { BOUNDARY_STYLE, buildingStyle, buildingTooltip, featureStyle } from './map-styles';
 
@@ -78,6 +79,8 @@ function toOl(geometry: GeoJsonGeometry, name: string | null): OlFeature<Geometr
 export class ProjectMap {
   readonly layers = input<ProjectLayers | null>(null);
   readonly buildings = input<BuildingLayer | null>(null);
+  /** Survey row per Building ID, shown in the building tooltip. */
+  readonly survey = input<ReadonlyMap<string, SurveyRecordRead>>(new Map());
   /** Review categories to draw; the others are hidden. */
   readonly visible = input<ReadonlySet<BuildingReviewKey>>(new Set(BUILDING_REVIEW_KEYS));
 
@@ -103,7 +106,7 @@ export class ProjectMap {
     effect(() => {
       const map = this.map();
       if (map) {
-        this.render(map, this.layers(), this.buildings());
+        this.render(map, this.layers(), this.buildings(), this.survey());
       }
     });
     effect(() => {
@@ -132,7 +135,12 @@ export class ProjectMap {
     return map;
   }
 
-  private render(map: OlMap, layers: ProjectLayers | null, buildings: BuildingLayer | null): void {
+  private render(
+    map: OlMap,
+    layers: ProjectLayers | null,
+    buildings: BuildingLayer | null,
+    survey: ReadonlyMap<string, SurveyRecordRead>,
+  ): void {
     map.updateSize(); // the card may have changed size since the map was created
     this.boundarySource.clear();
     this.featureSource.clear();
@@ -142,7 +150,7 @@ export class ProjectMap {
     }
     this.featureSource.addFeatures((layers?.features ?? []).map((f) => toOl(f.geometry, f.name)));
     for (const b of buildings?.buildings ?? []) {
-      const f = toOl(b.geometry, buildingTooltip(b));
+      const f = toOl(b.geometry, buildingTooltip(b, survey));
       f.setProperties({ review: b.status, position: b.boundary_position });
       this.buildingSource.addFeature(f);
     }

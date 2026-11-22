@@ -1,0 +1,40 @@
+# How to read the field-survey Excel (Stage 03 output).
+# Columns are found by their HEADER TEXT (case and extra spaces ignored), not by position.
+source: "Survey Excel template v1.1 (sheet 'Survey') of the test region — see docs/03"
+approved_by: null
+status: TBC
+
+sheet: "Survey"
+header_row: 1
+
+# field name in OPTICORE → header text in the Excel
+columns:
+  code: "ID (unique)"
+  visit_date: "Visit Date"
+  street_name: "Street Name"
+  building_name: "Building Name"
+  building_number: "Building Number"
+  latitude: "Building GPS N"
+  longitude: "Building GPS E"
+  floors: "Floors (excl. GF)"
+  users_per_floor: "Users per Floor (excl. GF)"
+  gf_users: "GF Users (incl. shops)"
+  total_users: "Total Users"
+  hp_te_required: 'HPs "TE Required to be added"  مطلوب تزويده'
+  comments: "Comments"
+  sub_category: "Sub Category"
+  final_category: "Final Category"
+  placemark_id: "Placemark ID"
+  entrance_length_m: "Building Entrance Length (m)"
+  entrance_marked: "Entrance Marked (Y/N)"
+  msan_note: "MSAN Note"
+  void_core: "Void / Core"
+  hp_count: "HP Count / Not Count"
+  qty_home_pass: "QTY of Home Pass"
+  te_comment: "TE Comment"
+
+# The file cannot be imported without these.
+required: [code, latitude, longitude]
+
+# Deliberately NOT imported (personal data, not needed for design):
+# "Surveyor Name", "TE Rep Name".

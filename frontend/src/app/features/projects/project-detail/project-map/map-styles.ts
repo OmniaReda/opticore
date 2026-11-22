@@ -2,6 +2,7 @@ import { FeatureLike } from 'ol/Feature';
 import { Circle, Fill, Stroke, Style } from 'ol/style';
 
 import { BuildingRead } from '../../../../api/models/building-read';
+import { SurveyRecordRead } from '../../../../api/models/survey-record-read';
 import {
   BUILDING_REVIEW_COLOR,
   BUILDING_REVIEW_LABEL,
@@ -69,8 +70,27 @@ const POSITION_TEXT: Partial<Record<string, string>> = {
   outside: ' · outside the boundary',
 };
 
-export function buildingTooltip(b: BuildingRead): string {
+/** Survey part of the tooltip: users (summed over the building's IDs) and floors of a single ID. */
+function surveyText(
+  codes: readonly string[],
+  survey: ReadonlyMap<string, SurveyRecordRead>,
+): string {
+  const rows = codes.map((c) => survey.get(c)).filter((r) => r !== undefined);
+  if (rows.length === 0) {
+    return '';
+  }
+  const users = rows.reduce((sum, r) => sum + (r.total_users ?? 0), 0);
+  const floors =
+    rows.length === 1 && rows[0].floors !== null ? `, ${rows[0].floors} floors + GF` : '';
+  return ` · ${users} users${floors}`;
+}
+
+export function buildingTooltip(
+  b: BuildingRead,
+  survey: ReadonlyMap<string, SurveyRecordRead> = new Map(),
+): string {
   const ids = b.codes.length ? `ID ${b.codes.join(', ')}` : 'No ID';
   const position = b.boundary_position ? (POSITION_TEXT[b.boundary_position] ?? '') : '';
-  return `${ids} · ${Math.round(b.area_m2)} m² · ${BUILDING_REVIEW_LABEL[b.status]}${position}`;
+  const status = BUILDING_REVIEW_LABEL[b.status];
+  return `${ids} · ${Math.round(b.area_m2)} m² · ${status}${surveyText(b.codes, survey)}${position}`;
 }

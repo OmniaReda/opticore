@@ -6,4 +6,5 @@ httpx2==2.16.0  # used by starlette.testclient (successor of httpx)
 ruff==0.17.6
 mypy==2.4.1
 types-PyYAML==6.0.12.20250915
+types-openpyxl==3.1.5.20261017
 lxml-stubs==0.5.1
