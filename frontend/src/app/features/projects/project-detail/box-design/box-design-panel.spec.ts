@@ -47,6 +47,19 @@ describe('BoxDesignPanel', () => {
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')).toEqual(sent[0]); // remembered
   });
 
+  it('asks for the AutoCAD file with the same values', () => {
+    const fixture = setup();
+    const el = fixture.nativeElement as HTMLElement;
+    const asked: string[] = [];
+    fixture.componentInstance.download.subscribe((d) =>
+      asked.push(`${d.format}:${d.request.box_types[0].capacity}`),
+    );
+    type(el, '#box-name-0', 'Test box');
+    type(el, '#box-capacity-0', '16');
+    [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('AutoCAD'))?.click();
+    expect(asked).toEqual(['dxf:16']);
+  });
+
   it('does not send an incomplete box type', () => {
     const fixture = setup();
     const el = fixture.nativeElement as HTMLElement;

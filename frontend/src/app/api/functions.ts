@@ -45,9 +45,13 @@ export type { ExportStreets$Params as ExportStreets$Params } from './fn/exports/
 export { exportStreets as exportStreets } from './fn/exports/export-streets';
 export type { ExportSurveySheet$Params as ExportSurveySheet$Params } from './fn/exports/export-survey-sheet';
 export { exportSurveySheet as exportSurveySheet } from './fn/exports/export-survey-sheet';
+export type { ExportStreetMapDxf$Params as ExportStreetMapDxf$Params } from './fn/exports/export-street-map-dxf';
+export { exportStreetMapDxf as exportStreetMapDxf } from './fn/exports/export-street-map-dxf';
 export type { GetBoxDefaults$Params as GetBoxDefaults$Params } from './fn/network-boxes/get-box-defaults';
 export { getBoxDefaults as getBoxDefaults } from './fn/network-boxes/get-box-defaults';
 export type { DesignBoxes$Params as DesignBoxes$Params } from './fn/network-boxes/design-boxes';
 export { designBoxes as designBoxes } from './fn/network-boxes/design-boxes';
 export type { ExportBoxDesign$Params as ExportBoxDesign$Params } from './fn/network-boxes/export-box-design';
 export { exportBoxDesign as exportBoxDesign } from './fn/network-boxes/export-box-design';
+export type { ExportBoxDesignDxf$Params as ExportBoxDesignDxf$Params } from './fn/network-boxes/export-box-design-dxf';
+export { exportBoxDesignDxf as exportBoxDesignDxf } from './fn/network-boxes/export-box-design-dxf';

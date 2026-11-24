@@ -915,6 +915,52 @@
         }
       }
     },
+    "/projects/{project_id}/export/street-map-dxf": {
+      "get": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Export Street Map Dxf",
+        "description": "AutoCAD street map in UTM 36N metres: boundary, OpenStreetMap streets with names, house numbers, field\nFloors / Total Users, and the drawing's buildings when there is a drawing. One layer each.",
+        "operationId": "export_street_map_dxf",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/dxf": {}
+            }
+          },
+          "409": {
+            "description": "No boundary yet"
+          },
+          "502": {
+            "description": "OSM down"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/network-boxes/defaults": {
       "get": {
         "tags": [
@@ -1022,6 +1068,52 @@
             "description": "Successful Response",
             "content": {
               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}
+            }
+          },
+          "409": {
+            "description": "No drawing or no survey users yet"
+          },
+          "422": {
+            "description": "Unusable values"
+          }
+        }
+      }
+    },
+    "/projects/{project_id}/network-boxes/design/dxf": {
+      "post": {
+        "tags": [
+          "network boxes"
+        ],
+        "summary": "Export Box Design Dxf",
+        "description": "The same design in AutoCAD (UTM 36N metres): boxes and drop lines over the street map.",
+        "operationId": "export_box_design_dxf",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BoxDesignRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/dxf": {}
             }
           },
           "409": {

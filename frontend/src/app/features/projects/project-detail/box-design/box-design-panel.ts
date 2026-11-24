@@ -6,6 +6,7 @@ import { BoxDesign } from '../../../../api/models/box-design';
 import { BoxDesignDefaults } from '../../../../api/models/box-design-defaults';
 import { BoxDesignRequest } from '../../../../api/models/box-design-request';
 import { BoxTypeIn } from '../../../../api/models/box-type-in';
+import { BoxFileFormat } from './box-design-store';
 
 /** Last values entered, so box types are not typed again on every project (this browser only). */
 export const STORAGE_KEY = 'opticore.box-design';
@@ -54,7 +55,7 @@ export class BoxDesignPanel {
   readonly hasBoundary = input(false);
 
   readonly run = output<BoxDesignRequest>();
-  readonly download = output<BoxDesignRequest>();
+  readonly download = output<{ request: BoxDesignRequest; format: BoxFileFormat }>();
 
   protected readonly form = new FormGroup({
     types: new FormArray<BoxTypeForm>([]),
@@ -102,7 +103,7 @@ export class BoxDesignPanel {
     }
   }
 
-  protected submit(kind: 'run' | 'download'): void {
+  protected submit(kind: 'run' | BoxFileFormat): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -113,7 +114,11 @@ export class BoxDesignPanel {
     } catch {
       // storage blocked: the values are simply not remembered
     }
-    (kind === 'run' ? this.run : this.download).emit(request);
+    if (kind === 'run') {
+      this.run.emit(request);
+    } else {
+      this.download.emit({ request, format: kind });
+    }
   }
 
   protected listed(ids: readonly string[]): string {

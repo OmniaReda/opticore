@@ -16,6 +16,8 @@ import { designBoxes } from '../fn/network-boxes/design-boxes';
 import { DesignBoxes$Params } from '../fn/network-boxes/design-boxes';
 import { exportBoxDesign } from '../fn/network-boxes/export-box-design';
 import { ExportBoxDesign$Params } from '../fn/network-boxes/export-box-design';
+import { exportBoxDesignDxf } from '../fn/network-boxes/export-box-design-dxf';
+import { ExportBoxDesignDxf$Params } from '../fn/network-boxes/export-box-design-dxf';
 import { getBoxDefaults } from '../fn/network-boxes/get-box-defaults';
 import { GetBoxDefaults$Params } from '../fn/network-boxes/get-box-defaults';
 
@@ -125,6 +127,41 @@ export class NetworkBoxesService extends BaseService {
    */
   exportBoxDesign(params: ExportBoxDesign$Params, context?: HttpContext): Observable<any> {
     const resp = this.exportBoxDesign$Response(params, context);
+    return resp.pipe(
+      map((r: StrictHttpResponse<any>): any => r.body)
+    );
+  }
+
+  /** Path part for operation `exportBoxDesignDxf()` */
+  static readonly ExportBoxDesignDxfPath = '/projects/{project_id}/network-boxes/design/dxf';
+
+  /**
+   * Export Box Design Dxf.
+   *
+   * The same design in AutoCAD (UTM 36N metres): boxes and drop lines over the street map.
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `exportBoxDesignDxf()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  exportBoxDesignDxf$Response(params: ExportBoxDesignDxf$Params, context?: HttpContext): Observable<StrictHttpResponse<any>> {
+    const obs = exportBoxDesignDxf(this.http, this.rootUrl, params, context);
+    return obs;
+  }
+
+  /**
+   * Export Box Design Dxf.
+   *
+   * The same design in AutoCAD (UTM 36N metres): boxes and drop lines over the street map.
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `exportBoxDesignDxf$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  exportBoxDesignDxf(params: ExportBoxDesignDxf$Params, context?: HttpContext): Observable<any> {
+    const resp = this.exportBoxDesignDxf$Response(params, context);
     return resp.pipe(
       map((r: StrictHttpResponse<any>): any => r.body)
     );

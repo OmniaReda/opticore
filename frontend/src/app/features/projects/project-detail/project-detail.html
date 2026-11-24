@@ -66,7 +66,7 @@
     [blocked]="boxesBlocked()"
     [hasBoundary]="!!store.layers()?.boundary"
     (run)="boxes.run(project.id, $event); mapCard.scrollIntoView({ behavior: 'smooth' })"
-    (download)="boxes.download(project.id, $event)"
+    (download)="boxes.download(project.id, $event.request, $event.format)"
   />
 
   @if (store.validation(); as validation) {

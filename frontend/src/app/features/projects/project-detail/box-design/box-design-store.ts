@@ -7,6 +7,8 @@ import { NetworkBoxesService } from '../../../../api/services/network-boxes.serv
 import { apiErrorMessage } from '../../../../shared/api-error';
 import { saveBlob } from '../../../../shared/save-blob';
 
+export type BoxFileFormat = 'xlsx' | 'dxf';
+
 /** Network Box design of one project page: form defaults, last result, Excel download. */
 @Injectable()
 export class BoxDesignStore {
@@ -34,18 +36,21 @@ export class BoxDesignStore {
       });
   }
 
-  download(projectId: string, request: BoxDesignRequest): void {
+  /** Excel (boxes, buildings, settings) or AutoCAD (boxes and drop lines over the street map). */
+  download(projectId: string, request: BoxDesignRequest, format: BoxFileFormat = 'xlsx'): void {
     this.start();
-    this.api
-      .exportBoxDesign$Response({ project_id: projectId, body: request })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (response) => {
-          saveBlob(response.body as Blob, 'network-boxes.xlsx');
-          this.busy.set(false);
-        },
-        error: (err: unknown) => this.fail(err),
-      });
+    const params = { project_id: projectId, body: request };
+    const file$ =
+      format === 'xlsx'
+        ? this.api.exportBoxDesign$Response(params)
+        : this.api.exportBoxDesignDxf$Response(params);
+    file$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (response) => {
+        saveBlob(response.body as Blob, `network-boxes.${format}`);
+        this.busy.set(false);
+      },
+      error: (err: unknown) => this.fail(err),
+    });
   }
 
   /** The drawing or survey changed: the last design no longer matches it. */

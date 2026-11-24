@@ -74,6 +74,12 @@ export class ProjectDetail {
         url: `${base}/streets`,
         title: 'House numbers and street names inside the boundary, from OpenStreetMap',
       });
+      all.push({
+        label: 'Street map (AutoCAD)',
+        url: `${base}/street-map-dxf`,
+        title:
+          'DXF in UTM 36N metres: boundary, OpenStreetMap streets with names, house numbers, field data',
+      });
     }
     return all;
   });

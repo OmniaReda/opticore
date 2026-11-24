@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from fastapi.responses import Response
 
 from app.api.deps import DbSession, ProjectDep
-from app.services import exports, map_sheet, streets
+from app.services import cad_map, exports, map_sheet, streets
 
 router = APIRouter(prefix="/projects/{project_id}/export", tags=["exports"])
 
@@ -53,3 +53,14 @@ def export_survey_sheet(project: ProjectDep, db: DbSession) -> Response:
     """The whole map in the survey template: one row per Building ID with street name (survey, else nearest
     OpenStreetMap street), GPS, and every survey value known. Can be completed and uploaded back as the survey."""
     return _file(map_sheet.to_xlsx(db, project), XLSX, "survey-sheet.xlsx")
+
+
+@router.get(
+    "/street-map-dxf",
+    response_class=Response,
+    responses={200: {"content": {DXF: {}}}, 409: {"description": "No boundary yet"}, 502: {"description": "OSM down"}},
+)
+def export_street_map_dxf(project: ProjectDep, db: DbSession) -> Response:
+    """AutoCAD street map in UTM 36N metres: boundary, OpenStreetMap streets with names, house numbers, field
+    Floors / Total Users, and the drawing's buildings when there is a drawing. One layer each."""
+    return _file(cad_map.to_dxf(db, project), DXF, "street-map.dxf")

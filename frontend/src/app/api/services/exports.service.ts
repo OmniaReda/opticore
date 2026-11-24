@@ -14,6 +14,8 @@ import { exportDxf } from '../fn/exports/export-dxf';
 import { ExportDxf$Params } from '../fn/exports/export-dxf';
 import { exportKmz } from '../fn/exports/export-kmz';
 import { ExportKmz$Params } from '../fn/exports/export-kmz';
+import { exportStreetMapDxf } from '../fn/exports/export-street-map-dxf';
+import { ExportStreetMapDxf$Params } from '../fn/exports/export-street-map-dxf';
 import { exportStreets } from '../fn/exports/export-streets';
 import { ExportStreets$Params } from '../fn/exports/export-streets';
 import { exportSurveySheet } from '../fn/exports/export-survey-sheet';
@@ -199,6 +201,43 @@ export class ExportsService extends BaseService {
    */
   exportSurveySheet(params: ExportSurveySheet$Params, context?: HttpContext): Observable<any> {
     const resp = this.exportSurveySheet$Response(params, context);
+    return resp.pipe(
+      map((r: StrictHttpResponse<any>): any => r.body)
+    );
+  }
+
+  /** Path part for operation `exportStreetMapDxf()` */
+  static readonly ExportStreetMapDxfPath = '/projects/{project_id}/export/street-map-dxf';
+
+  /**
+   * Export Street Map Dxf.
+   *
+   * AutoCAD street map in UTM 36N metres: boundary, OpenStreetMap streets with names, house numbers, field
+   * Floors / Total Users, and the drawing's buildings when there is a drawing. One layer each.
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `exportStreetMapDxf()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  exportStreetMapDxf$Response(params: ExportStreetMapDxf$Params, context?: HttpContext): Observable<StrictHttpResponse<any>> {
+    const obs = exportStreetMapDxf(this.http, this.rootUrl, params, context);
+    return obs;
+  }
+
+  /**
+   * Export Street Map Dxf.
+   *
+   * AutoCAD street map in UTM 36N metres: boundary, OpenStreetMap streets with names, house numbers, field
+   * Floors / Total Users, and the drawing's buildings when there is a drawing. One layer each.
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `exportStreetMapDxf$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  exportStreetMapDxf(params: ExportStreetMapDxf$Params, context?: HttpContext): Observable<any> {
+    const resp = this.exportStreetMapDxf$Response(params, context);
     return resp.pipe(
       map((r: StrictHttpResponse<any>): any => r.body)
     );
