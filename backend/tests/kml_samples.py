@@ -84,3 +84,21 @@ def kmz(kml: bytes, inner_name: str = "doc.kml") -> bytes:
         zf.writestr("files/readme.txt", "sample")
         zf.writestr(inner_name, kml)
     return buf.getvalue()
+
+
+# AutoCAD export of a boundary drawn as an open polyline: two lines that join end to end; the last point
+# stops 2 m short of the first (the rectangle RECT_UTM).
+_OPEN = [(_X0, _Y0), (_X0 + 200, _Y0), (_X0 + 200, _Y0 + 300)]
+_OPEN_2 = [(_X0 + 200, _Y0 + 300), (_X0, _Y0 + 300), (_X0, _Y0 + 2)]
+OPEN_BOUNDARY_LINES_KML = f"""<?xml version="1.0" standalone="yes"?>
+<kml><Document><name>boundary.dwg</name><Folder><name>Layers</name>
+<Placemark><name>0</name><MultiGeometry>
+  <LineString><coordinates>{_lonlat(_OPEN, z="")}</coordinates></LineString>
+  <LineString><coordinates>{_lonlat(_OPEN_2, z="")}</coordinates></LineString>
+</MultiGeometry></Placemark>
+</Folder></Document></kml>
+""".encode()
+
+# Same, but the ends stay 50 m apart: not closed.
+_OPEN_FAR = [(_X0 + 200, _Y0 + 300), (_X0, _Y0 + 300), (_X0, _Y0 + 50)]
+OPEN_FAR_LINES_KML = OPEN_BOUNDARY_LINES_KML.replace(_lonlat(_OPEN_2, z="").encode(), _lonlat(_OPEN_FAR, z="").encode())

@@ -59,7 +59,7 @@ def test_file_without_polygon_keeps_boundary(client: TestClient) -> None:
 
     state = file_state(client, pid, f["id"])
     assert state["status"] == "processed"
-    assert "No boundary polygon" in state["note"]
+    assert "No boundary polygon" in state["note"]  # a loose line + a small ring: not one closed shape
     assert "2 lines" in state["note"] and "1 empty/degenerate" in state["note"]
 
     layers = client.get(f"/projects/{pid}/layers").json()
@@ -123,3 +123,22 @@ def test_delete_project_with_boundary(client: TestClient) -> None:
     upload(client, pid, "a.kml", s.GOOGLE_EARTH_KML)
     assert client.delete(f"/projects/{pid}").status_code == 204
     assert client.get(f"/projects/{pid}/layers").status_code == 404
+
+
+def test_boundary_drawn_as_open_lines(client: TestClient) -> None:
+    pid = new_project(client)
+    f = upload(client, pid, "boundary.kml", s.OPEN_BOUNDARY_LINES_KML)
+    state = file_state(client, pid, f["id"])
+    assert state["status"] == "processed", state
+    assert "boundary built from 2 lines (closed a 2.0 m gap)" in state["note"]
+    layers = client.get(f"/projects/{pid}/layers").json()
+    assert layers["boundary"]["area_m2"] == pytest.approx(200 * 300, rel=0.001)
+    assert layers["features"] == []  # the lines are the boundary, not extra features
+
+
+def test_lines_far_from_closing_are_not_a_boundary(client: TestClient) -> None:
+    pid = new_project(client)
+    f = upload(client, pid, "lines.kml", s.OPEN_FAR_LINES_KML)
+    state = file_state(client, pid, f["id"])
+    assert "do not close" in state["note"]
+    assert client.get(f"/projects/{pid}/layers").json()["boundary"] is None
