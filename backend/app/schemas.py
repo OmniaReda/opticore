@@ -232,6 +232,31 @@ class ValidationReport(BaseModel):
     issues: list[ValidationIssue]
 
 
+class AddressPointRead(BaseModel):
+    """A filled row of the Streets & numbers Excel (OpenStreetMap house number + field data)."""
+
+    id: uuid.UUID
+    row_number: int = Field(description="Row number in the Excel sheet")
+    street_ar: str | None
+    street_en: str | None
+    house_number: str | None
+    floors: int | None
+    total_users: int | None
+    geometry: GeoJsonGeometry
+
+
+class AddressSummary(BaseModel):
+    rows: int
+    total_users: int
+    without_users: int = Field(description="Rows with Floors but no Total Users")
+
+
+class AddressLayer(BaseModel):
+    source_file_id: uuid.UUID | None = Field(description="Streets & numbers Excel the points come from")
+    summary: AddressSummary
+    points: list[AddressPointRead]
+
+
 # --- Network Box placement (design) ---
 
 
@@ -269,10 +294,10 @@ class BoxDesignDefaults(BaseModel):
 
 
 class ServedBuilding(BaseModel):
-    codes: list[str] = Field(description="Building IDs of the building")
+    codes: list[str] = Field(description="Building IDs of the building, or the address ('12 street')")
     users: int = Field(description="Users of this building served by this box")
     distance_m: float = Field(description="Straight line from the box to the building outline (UTM 36N)")
-    geometry: GeoJsonGeometry = Field(description="A point inside the building (EPSG:4326)")
+    geometry: GeoJsonGeometry = Field(description="A point inside the building, or the address (EPSG:4326)")
 
 
 class NetworkBoxRead(BaseModel):
@@ -305,8 +330,14 @@ class BoxDesignSummary(BaseModel):
     outside_skipped: int = Field(description="Buildings outside the boundary left out")
 
 
+class DesignSource(enum.StrEnum):
+    buildings = "buildings"  # drawing + survey Excel
+    addresses = "addresses"  # filled Streets & numbers Excel (no drawing)
+
+
 class BoxDesign(BaseModel):
     provisional: bool = Field(description="Always true for now: prototype method and unconfirmed values")
+    source: DesignSource = Field(description="Where the users come from")
     request: BoxDesignRequest
     summary: BoxDesignSummary
     boxes: list[NetworkBoxRead]

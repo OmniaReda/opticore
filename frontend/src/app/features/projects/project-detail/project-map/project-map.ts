@@ -21,6 +21,7 @@ import VectorLayer from 'ol/layer/Vector';
 import OSM from 'ol/source/OSM';
 import VectorSource from 'ol/source/Vector';
 
+import { AddressLayer } from '../../../../api/models/address-layer';
 import { BoxDesign } from '../../../../api/models/box-design';
 import { BuildingLayer } from '../../../../api/models/building-layer';
 import { GeoJsonGeometry } from '../../../../api/models/geo-json-geometry';
@@ -29,7 +30,9 @@ import { SurveyRecordRead } from '../../../../api/models/survey-record-read';
 import { BUILDING_REVIEW_KEYS, BuildingReviewKey } from '../../../../shared/labels';
 import {
   BOUNDARY_STYLE,
+  ADDRESS_STYLE,
   FOCUS_STYLE,
+  addressTooltip,
   boxStyle,
   boxTooltip,
   buildingStyle,
@@ -96,6 +99,8 @@ export class ProjectMap {
   readonly focus = input<GeoJsonGeometry | null>(null);
   /** Network Boxes of the last design run, with a line to each building they serve. */
   readonly boxes = input<BoxDesign | null>(null);
+  /** Filled house numbers (Streets & numbers Excel), drawn as dots. */
+  readonly addresses = input<AddressLayer | null>(null);
 
   protected readonly hoverName = signal<string | null>(null);
   protected readonly isEmptyMap = signal(true);
@@ -106,6 +111,7 @@ export class ProjectMap {
   private readonly buildingSource = new VectorSource<OlFeature<Geometry>>();
   private readonly focusSource = new VectorSource<OlFeature<Geometry>>();
   private readonly boxSource = new VectorSource<OlFeature<Geometry>>();
+  private readonly addressSource = new VectorSource<OlFeature<Geometry>>();
   private readonly buildingLayer = new VectorLayer({
     source: this.buildingSource,
     style: (f) => buildingStyle(f, this.visible()),
@@ -134,6 +140,15 @@ export class ProjectMap {
       }
     });
     effect(() => {
+      const addresses = this.addresses();
+      if (this.map()) {
+        this.addressSource.clear();
+        this.addressSource.addFeatures(
+          (addresses?.points ?? []).map((p) => toOl(p.geometry, addressTooltip(p))),
+        );
+      }
+    });
+    effect(() => {
       const map = this.map();
       const focus = this.focus();
       if (map) {
@@ -151,6 +166,7 @@ export class ProjectMap {
         new VectorLayer({ source: this.boundarySource, style: BOUNDARY_STYLE }),
         this.buildingLayer,
         new VectorLayer({ source: this.featureSource, style: featureStyle }),
+        new VectorLayer({ source: this.addressSource, style: ADDRESS_STYLE }),
         new VectorLayer({ source: this.boxSource, style: boxStyle }),
         new VectorLayer({ source: this.focusSource, style: FOCUS_STYLE }),
       ],
@@ -175,7 +191,7 @@ export class ProjectMap {
           this.boxSource.addFeature(new OlFeature({ geometry: line }));
         }
       }
-      this.boxSource.addFeature(toOl(box.geometry, boxTooltip(box)));
+      this.boxSource.addFeature(toOl(box.geometry, boxTooltip(box, design?.source)));
     }
   }
 

@@ -1,4 +1,5 @@
 /** SAMPLE API objects for unit tests — not real project data. */
+import { AddressLayer } from '../api/models/address-layer';
 import { BoxDesign } from '../api/models/box-design';
 import { BuildingLayer } from '../api/models/building-layer';
 import { ProjectFileRead } from '../api/models/project-file-read';
@@ -180,6 +181,7 @@ export function sampleBoxDesign(overrides: Partial<BoxDesign> = {}): BoxDesign {
   const at = { type: 'Point', coordinates: [31.2, 30.1] };
   return {
     provisional: true,
+    source: 'buildings',
     request: {
       box_types: [{ name: 'Test-16', capacity: 16 }],
       max_drop_m: 50,
@@ -218,6 +220,37 @@ export function sampleBoxDesign(overrides: Partial<BoxDesign> = {}): BoxDesign {
         dedicated: false,
         geometry: at,
         served: [{ codes: ['3', '3-2'], users: 8, distance_m: 0, geometry: at }],
+      },
+    ],
+    ...overrides,
+  };
+}
+
+/** SAMPLE filled Streets & numbers rows (synthetic). */
+export function sampleAddresses(overrides: Partial<AddressLayer> = {}): AddressLayer {
+  return {
+    source_file_id: 'f-addr',
+    summary: { rows: 2, total_users: 22, without_users: 1 },
+    points: [
+      {
+        id: 'a1',
+        row_number: 2,
+        street_ar: 'شارع تجريبي',
+        street_en: null,
+        house_number: '12',
+        floors: 10,
+        total_users: 22,
+        geometry: { type: 'Point', coordinates: [31.2, 30.1] },
+      },
+      {
+        id: 'a2',
+        row_number: 3,
+        street_ar: null,
+        street_en: 'Test St.',
+        house_number: '3',
+        floors: 2,
+        total_users: null,
+        geometry: { type: 'Point', coordinates: [31.2, 30.1] },
       },
     ],
     ...overrides,

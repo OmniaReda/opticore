@@ -183,3 +183,23 @@ class SurveyRecord(Base):
     geometry: Mapped[WKBElement | None] = mapped_column(Geometry("POINT", srid=4326, spatial_index=False))
 
     __table_args__ = (Index("ix_survey_record_geometry", "geometry", postgresql_using="gist"),)
+
+
+class AddressPoint(Base):
+    """A row of the filled Streets & numbers Excel: an OpenStreetMap house number with the floors and users
+    the field team wrote next to it. Used when there is no drawing: it has a location, not a Building ID."""
+
+    __tablename__ = "address_point"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("project.id", ondelete="CASCADE"), index=True)
+    source_file_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("project_file.id", ondelete="CASCADE"), index=True)
+    row_number: Mapped[int]
+    street_ar: Mapped[str | None] = mapped_column(Text)
+    street_en: Mapped[str | None] = mapped_column(Text)
+    house_number: Mapped[str | None] = mapped_column(String(50))
+    floors: Mapped[int | None]
+    total_users: Mapped[int | None]
+    geometry: Mapped[WKBElement] = mapped_column(Geometry("POINT", srid=4326, spatial_index=False))
+
+    __table_args__ = (Index("ix_address_point_geometry", "geometry", postgresql_using="gist"),)

@@ -150,7 +150,16 @@
           </dd>
           <dt class="col-sm-4">Users served</dt>
           <dd class="col-sm-8">
-            {{ s.users | number }} in {{ s.buildings_served | number }} buildings
+            {{ s.users | number }} in {{ s.buildings_served | number }}
+            {{ d.source === 'addresses' ? 'addresses' : 'buildings' }}
+            <span class="text-muted">
+              (from
+              {{
+                d.source === 'addresses'
+                  ? 'the Streets & numbers Excel'
+                  : 'the drawing + survey Excel'
+              }})
+            </span>
           </dd>
           <dt class="col-sm-4">Longest box → building</dt>
           <dd class="col-sm-8">
@@ -159,7 +168,12 @@
           </dd>
           <dt class="col-sm-4">Not served</dt>
           <dd class="col-sm-8" [class.text-danger]="s.without_users.length > 0">
-            {{ s.without_users.length | number }} Building IDs without Total Users in the survey
+            {{ s.without_users.length | number }}
+            {{
+              d.source === 'addresses'
+                ? 'addresses without Total Users'
+                : 'Building IDs without Total Users in the survey'
+            }}
             @if (s.without_users.length) {
               <div class="text-muted" dir="ltr">{{ listed(s.without_users) }}</div>
             }

@@ -3,6 +3,7 @@
 
 import { BoxDesignRequest } from '../models/box-design-request';
 import { BoxDesignSummary } from '../models/box-design-summary';
+import { DesignSource } from '../models/design-source';
 import { NetworkBoxRead } from '../models/network-box-read';
 export interface BoxDesign {
   boxes: Array<NetworkBoxRead>;
@@ -12,5 +13,10 @@ export interface BoxDesign {
    */
   provisional: boolean;
   request: BoxDesignRequest;
+
+  /**
+   * Where the users come from
+   */
+  source: DesignSource;
   summary: BoxDesignSummary;
 }

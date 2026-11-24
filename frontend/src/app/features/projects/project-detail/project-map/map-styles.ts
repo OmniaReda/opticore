@@ -1,7 +1,9 @@
 import { FeatureLike } from 'ol/Feature';
 import { Circle, Fill, RegularShape, Stroke, Style } from 'ol/style';
 
+import { AddressPointRead } from '../../../../api/models/address-point-read';
 import { BuildingRead } from '../../../../api/models/building-read';
+import { DesignSource } from '../../../../api/models/design-source';
 import { NetworkBoxRead } from '../../../../api/models/network-box-read';
 import { SurveyRecordRead } from '../../../../api/models/survey-record-read';
 import {
@@ -123,8 +125,25 @@ export function boxStyle(feature: FeatureLike): Style {
   return feature.getGeometry()?.getType() === 'Point' ? BOX_STYLE : DROP_STYLE;
 }
 
-export function boxTooltip(box: NetworkBoxRead): string {
+export function boxTooltip(box: NetworkBoxRead, source: DesignSource = 'buildings'): string {
   const ids = box.served.flatMap((s) => s.codes);
   const list = ids.length > 8 ? `${ids.slice(0, 8).join(', ')} …` : ids.join(', ');
-  return `${box.label} · ${box.box_type} · ${box.users}/${box.usable} users · on ID ${box.host_codes.join(', ')} · serves ${list}`;
+  const on = source === 'addresses' ? 'at' : 'on ID';
+  return `${box.label} · ${box.box_type} · ${box.users}/${box.usable} users · ${on} ${box.host_codes.join(', ')} · serves ${list}`;
+}
+
+/** House number filled in the Streets & numbers Excel. */
+export const ADDRESS_STYLE = new Style({
+  image: new Circle({
+    radius: 4,
+    fill: new Fill({ color: '#fd7e14' }),
+    stroke: new Stroke({ color: '#fff', width: 1 }),
+  }),
+});
+
+export function addressTooltip(p: AddressPointRead): string {
+  const street = p.street_ar ?? p.street_en ?? '';
+  const floors = p.floors === null ? '' : ` · ${p.floors} floors + GF`;
+  const users = p.total_users === null ? ' · no users' : ` · ${p.total_users} users`;
+  return `No. ${p.house_number ?? '?'} ${street}${floors}${users}`;
 }

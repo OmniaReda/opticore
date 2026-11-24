@@ -5,7 +5,7 @@ import { GeoJsonGeometry } from '../models/geo-json-geometry';
 export interface ServedBuilding {
 
   /**
-   * Building IDs of the building
+   * Building IDs of the building, or the address ('12 street')
    */
   codes: Array<string>;
 
@@ -15,7 +15,7 @@ export interface ServedBuilding {
   distance_m: number;
 
   /**
-   * A point inside the building (EPSG:4326)
+   * A point inside the building, or the address (EPSG:4326)
    */
   geometry: GeoJsonGeometry;
 

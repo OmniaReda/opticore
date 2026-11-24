@@ -27,11 +27,11 @@ class SurveyError(FileContentError):
     pass
 
 
-class _UnreadableError(Exception):
+class UnreadableError(Exception):
     pass
 
 
-def _text(value: Any) -> str | None:
+def to_text(value: Any) -> str | None:
     if isinstance(value, float) and value.is_integer():
         value = int(value)  # IDs / numbers typed as 12.0 → "12"
     if isinstance(value, datetime):
@@ -40,27 +40,27 @@ def _text(value: Any) -> str | None:
     return text or None
 
 
-def _int(value: Any) -> int:
+def to_int(value: Any) -> int:
     if isinstance(value, bool):
-        raise _UnreadableError
+        raise UnreadableError
     if isinstance(value, int):
         return value
     if isinstance(value, float) and value.is_integer():
         return int(value)
     if isinstance(value, str) and value.strip().lstrip("-").isdigit():
         return int(value.strip())
-    raise _UnreadableError
+    raise UnreadableError
 
 
-def _float(value: Any) -> float:
+def to_float(value: Any) -> float:
     if isinstance(value, bool):
-        raise _UnreadableError
+        raise UnreadableError
     if isinstance(value, int | float):
         return float(value)
     try:
         return float(str(value).strip())
     except ValueError:
-        raise _UnreadableError from None
+        raise UnreadableError from None
 
 
 def _date(value: Any) -> date:
@@ -71,7 +71,7 @@ def _date(value: Any) -> date:
     try:
         return date.fromisoformat(str(value).strip()[:10])
     except ValueError:
-        raise _UnreadableError from None
+        raise UnreadableError from None
 
 
 _INT_FIELDS = {"floors", "users_per_floor", "gf_users", "total_users", "hp_te_required", "qty_home_pass"}
@@ -80,12 +80,12 @@ _FLOAT_FIELDS = {"latitude", "longitude", "entrance_length_m"}
 
 def _converter(name: SurveyField) -> Callable[[Any], Any]:
     if name in _INT_FIELDS:
-        return _int
+        return to_int
     if name in _FLOAT_FIELDS:
-        return _float
+        return to_float
     if name == "visit_date":
         return _date
-    return _text
+    return to_text
 
 
 @dataclass
@@ -163,7 +163,7 @@ def _read(path: Path, rules: SurveyColumnRules) -> SurveyContent:
                     continue
                 try:
                     values[name] = _converter(name)(raw)
-                except _UnreadableError:
+                except UnreadableError:
                     values[name] = None
                     content.unreadable[name] += 1
             code = values.pop("code", None)

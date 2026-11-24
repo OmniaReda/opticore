@@ -560,6 +560,50 @@
         }
       }
     },
+    "/projects/{project_id}/addresses": {
+      "get": {
+        "tags": [
+          "addresses"
+        ],
+        "summary": "Get Addresses",
+        "description": "House numbers with Floors / Total Users from the filled Streets & numbers Excel (EPSG:4326).",
+        "operationId": "get_addresses",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddressLayer"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/survey/template": {
       "get": {
         "tags": [
@@ -992,6 +1036,149 @@
   },
   "components": {
     "schemas": {
+      "AddressLayer": {
+        "properties": {
+          "source_file_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source File Id",
+            "description": "Streets & numbers Excel the points come from"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/AddressSummary"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/AddressPointRead"
+            },
+            "type": "array",
+            "title": "Points"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source_file_id",
+          "summary",
+          "points"
+        ],
+        "title": "AddressLayer"
+      },
+      "AddressPointRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "row_number": {
+            "type": "integer",
+            "title": "Row Number",
+            "description": "Row number in the Excel sheet"
+          },
+          "street_ar": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Street Ar"
+          },
+          "street_en": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Street En"
+          },
+          "house_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "House Number"
+          },
+          "floors": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Floors"
+          },
+          "total_users": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Users"
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/GeoJsonGeometry"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "row_number",
+          "street_ar",
+          "street_en",
+          "house_number",
+          "floors",
+          "total_users",
+          "geometry"
+        ],
+        "title": "AddressPointRead",
+        "description": "A filled row of the Streets & numbers Excel (OpenStreetMap house number + field data)."
+      },
+      "AddressSummary": {
+        "properties": {
+          "rows": {
+            "type": "integer",
+            "title": "Rows"
+          },
+          "total_users": {
+            "type": "integer",
+            "title": "Total Users"
+          },
+          "without_users": {
+            "type": "integer",
+            "title": "Without Users",
+            "description": "Rows with Floors but no Total Users"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rows",
+          "total_users",
+          "without_users"
+        ],
+        "title": "AddressSummary"
+      },
       "Body_upload_file": {
         "properties": {
           "file": {
@@ -1059,6 +1246,10 @@
             "title": "Provisional",
             "description": "Always true for now: prototype method and unconfirmed values"
           },
+          "source": {
+            "$ref": "#/components/schemas/DesignSource",
+            "description": "Where the users come from"
+          },
           "request": {
             "$ref": "#/components/schemas/BoxDesignRequest"
           },
@@ -1076,6 +1267,7 @@
         "type": "object",
         "required": [
           "provisional",
+          "source",
           "request",
           "summary",
           "boxes"
@@ -1471,6 +1663,14 @@
           "outside"
         ],
         "title": "BuildingSummary"
+      },
+      "DesignSource": {
+        "type": "string",
+        "enum": [
+          "buildings",
+          "addresses"
+        ],
+        "title": "DesignSource"
       },
       "FeatureRead": {
         "properties": {
@@ -1964,7 +2164,7 @@
             },
             "type": "array",
             "title": "Codes",
-            "description": "Building IDs of the building"
+            "description": "Building IDs of the building, or the address ('12 street')"
           },
           "users": {
             "type": "integer",
@@ -1978,7 +2178,7 @@
           },
           "geometry": {
             "$ref": "#/components/schemas/GeoJsonGeometry",
-            "description": "A point inside the building (EPSG:4326)"
+            "description": "A point inside the building, or the address (EPSG:4326)"
           }
         },
         "type": "object",

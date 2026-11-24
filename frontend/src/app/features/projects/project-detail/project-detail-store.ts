@@ -6,6 +6,7 @@ import { FileKind } from '../../../api/models/file-kind';
 import { ProjectFileRead } from '../../../api/models/project-file-read';
 import { ProjectRead } from '../../../api/models/project-read';
 import { SurveyRecordRead } from '../../../api/models/survey-record-read';
+import { AddressesService } from '../../../api/services/addresses.service';
 import { BuildingsService } from '../../../api/services/buildings.service';
 import { FilesService } from '../../../api/services/files.service';
 import { LayersService } from '../../../api/services/layers.service';
@@ -32,6 +33,7 @@ export class ProjectDetailStore {
   private readonly filesApi = inject(FilesService);
   private readonly layersApi = inject(LayersService);
   private readonly buildingsApi = inject(BuildingsService);
+  private readonly addressesApi = inject(AddressesService);
   private readonly surveyApi = inject(SurveyService);
   private readonly validationApi = inject(ValidationService);
   private readonly destroyRef = inject(DestroyRef);
@@ -47,6 +49,7 @@ export class ProjectDetailStore {
         layers: this.layersApi.getLayers({ project_id }),
         buildings: this.buildingsApi.getBuildings({ project_id }),
         survey: this.surveyApi.getSurvey({ project_id }),
+        addresses: this.addressesApi.getAddresses({ project_id }),
         validation: this.validationApi.getValidation({ project_id }),
       }),
   });
@@ -60,6 +63,8 @@ export class ProjectDetailStore {
   readonly layers = computed(() => this.data()?.layers ?? null);
   readonly buildings = computed(() => this.data()?.buildings ?? null);
   readonly survey = computed(() => this.data()?.survey ?? null);
+  /** House numbers with Floors / Total Users from the filled Streets & numbers Excel. */
+  readonly addresses = computed(() => this.data()?.addresses ?? null);
   readonly validation = computed(() => this.data()?.validation ?? null);
   /** Survey row per Building ID (for the map tooltip). */
   readonly surveyByCode = computed(

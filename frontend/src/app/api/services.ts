@@ -7,6 +7,7 @@ export { FilesService } from './services/files.service';
 export { LayersService } from './services/layers.service';
 export { BuildingsService } from './services/buildings.service';
 export { SurveyService } from './services/survey.service';
+export { AddressesService } from './services/addresses.service';
 export { ValidationService } from './services/validation.service';
 export { ExportsService } from './services/exports.service';
 export { NetworkBoxesService } from './services/network-boxes.service';

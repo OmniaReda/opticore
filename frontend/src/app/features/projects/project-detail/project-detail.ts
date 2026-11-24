@@ -81,8 +81,11 @@ export class ProjectDetail {
   /** Why boxes cannot be placed yet, or null. */
   protected readonly boxesBlocked = computed(() => {
     const buildings = this.store.buildings();
+    if (this.store.addresses()?.summary.total_users) {
+      return null; // the filled Streets & numbers Excel is enough
+    }
     if (!buildings?.summary.total) {
-      return 'Upload the drawing (DXF/DWG) and the survey Excel: boxes are placed on the buildings and sized by their Total Users.';
+      return 'Upload the drawing (DXF/DWG) and the survey Excel, or (without a drawing) the Streets & numbers Excel with Floors and Total Users filled in.';
     }
     if (!this.store.survey()?.summary.total_users) {
       return "Upload the survey Excel: boxes are sized by each building's Total Users.";

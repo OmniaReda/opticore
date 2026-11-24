@@ -11,14 +11,17 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app import geo, rules, storage
-from app.importers import survey
+from app.importers import address_sheet, survey
 from app.models import FileKind, Project, ProjectFile, SurveyRecord
+from app.services import address_import
 
 SURVEY_KINDS = {FileKind.survey_xlsx}
 
 
 def import_survey(db: Session, record: ProjectFile) -> str:
     """Import into the DB session (not committed). Returns the note shown to the user."""
+    if address_sheet.is_address_sheet(storage.absolute_path(record.stored_path)):
+        return address_import.import_addresses(db, record)  # the filled Streets & numbers Excel
     cfg = rules.survey_columns()
     content = survey.read(storage.absolute_path(record.stored_path), cfg)
     if not content.rows:

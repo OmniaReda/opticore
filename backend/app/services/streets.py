@@ -25,7 +25,7 @@ from shapely.strtree import STRtree
 from app import geo, rules, storage
 from app.config import get_settings
 from app.errors import ConflictError, ExternalServiceError
-from app.importers import osm
+from app.importers import address_sheet, osm
 from app.models import Project
 from app.services.buildings import natural_key
 
@@ -214,19 +214,19 @@ def to_xlsx(project: Project) -> bytes:
     wb = Workbook()
     addr = wb.active
     assert addr is not None
-    addr.title = "Addresses"
+    addr.title = address_sheet.SHEET
     # Left empty for the field team: OSM has no floors or users. Same titles as the survey template.
     survey = rules.survey_columns().columns
     _header(
         addr,
         [
-            "Street (Arabic)",
-            "Street (English)",
-            "House number",
+            address_sheet.STREET_AR,
+            address_sheet.STREET_EN,
+            address_sheet.HOUSE_NUMBER,
             "District",
             "Postcode",
-            "Latitude",
-            "Longitude",
+            address_sheet.LATITUDE,
+            address_sheet.LONGITUDE,
             "Street from",
             survey["floors"],
             survey["total_users"],
@@ -264,7 +264,8 @@ def to_xlsx(project: Project) -> bytes:
     info.append(["Streets", len(rows)])
     info.append(["Area", "OSM house numbers and named streets inside the project boundary"])
     info.append(["Note", "House numbers are street numbers (Building Number), not the drawing's Building IDs"])
-    info.append(["Empty columns", f"{survey['floors']} and {survey['total_users']}: to be filled by the survey"])
+    filled = f"{survey['floors']} and {survey['total_users']}"
+    info.append(["Empty columns", f"{filled}: fill them in the field, then upload this file to the project"])
     fetched = datetime.fromtimestamp(_cache_path(project).stat().st_mtime, UTC)
     info.append(["Downloaded", fetched.strftime("%Y-%m-%d")])
     info.column_dimensions["A"].width = 14

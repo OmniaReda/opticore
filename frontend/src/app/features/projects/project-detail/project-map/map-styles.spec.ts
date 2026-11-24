@@ -1,7 +1,7 @@
 import { BuildingRead } from '../../../../api/models/building-read';
 import { SurveyRecordRead } from '../../../../api/models/survey-record-read';
-import { sampleBoxDesign, sampleSurveyRecord } from '../../../../testing/fixtures';
-import { boxTooltip, buildingTooltip } from './map-styles';
+import { sampleAddresses, sampleBoxDesign, sampleSurveyRecord } from '../../../../testing/fixtures';
+import { addressTooltip, boxTooltip, buildingTooltip } from './map-styles';
 
 function building(overrides: Partial<BuildingRead>): BuildingRead {
   return {
@@ -53,5 +53,18 @@ describe('boxTooltip', () => {
   it('names the box, its type, load and buildings', () => {
     const box = sampleBoxDesign().boxes[1];
     expect(boxTooltip(box)).toBe('NB-002 · Test-16 · 8/16 users · on ID 3, 3-2 · serves 3, 3-2');
+  });
+});
+
+describe('addressTooltip', () => {
+  it('shows number, street, floors and users', () => {
+    const [withUsers, without] = sampleAddresses().points;
+    expect(addressTooltip(withUsers)).toBe('No. 12 شارع تجريبي · 10 floors + GF · 22 users');
+    expect(addressTooltip(without)).toBe('No. 3 Test St. · 2 floors + GF · no users');
+  });
+
+  it('names the box place by address when there is no drawing', () => {
+    const box = { ...sampleBoxDesign().boxes[0], host_codes: ['12 شارع تجريبي'] };
+    expect(boxTooltip(box, 'addresses')).toContain('· at 12 شارع تجريبي ·');
   });
 });

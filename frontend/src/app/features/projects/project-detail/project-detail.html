@@ -26,6 +26,13 @@
       @if (store.layers()?.features?.length; as count) {
         <span class="small text-muted">· {{ count }} imported features</span>
       }
+      @if (store.addresses()?.summary; as a) {
+        @if (a.rows) {
+          <span class="small text-muted">
+            · {{ a.rows | number }} addresses with data ({{ a.total_users | number }} users)
+          </span>
+        }
+      }
       <span class="small text-muted ms-2">Export:</span>
       @for (e of exports(); track e.label) {
         <a class="btn btn-sm btn-outline-secondary py-0" [href]="e.url" [title]="e.title" download>
@@ -40,6 +47,7 @@
       [focus]="focus()"
       [visible]="visible()"
       [boxes]="boxes.design()"
+      [addresses]="store.addresses()"
     />
     @if (store.buildings(); as buildings) {
       @if (buildings.summary.total || buildings.summary.orphan_ids) {

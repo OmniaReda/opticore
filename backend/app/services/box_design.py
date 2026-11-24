@@ -1,12 +1,17 @@
-"""Network Box placement for a project: buildings from the drawing, users from the survey.
+"""Network Box placement for a project.
 
-Users of a building = sum of the survey's Total Users over its Building IDs. Buildings with no users
-(no ID, or no Total Users in the survey) are not served and are listed in the summary.
+Where the users are, in order of preference:
+- drawing + survey: users of a building = sum of the survey's Total Users over its Building IDs;
+- no drawing: the filled Streets & numbers Excel, where each OpenStreetMap house number is a point with
+  the Total Users the field team wrote next to it.
+Buildings / addresses without users are not served and are listed in the summary.
 """
 
 from collections import Counter
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
+from geoalchemy2.shape import to_shape
 from openpyxl import Workbook
 from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
@@ -20,7 +25,7 @@ from sqlalchemy.orm import Session
 from app import geo, rules
 from app.design import box_placement as bp
 from app.errors import ConflictError, InvalidInputError
-from app.models import Project, SurveyRecord
+from app.models import AddressPoint, Project, SurveyRecord
 from app.schemas import (
     BoundaryPosition,
     BoxDesign,
@@ -29,12 +34,14 @@ from app.schemas import (
     BoxDesignSummary,
     BoxTypeCount,
     BoxTypeIn,
+    BuildingLayer,
+    DesignSource,
     GeoJsonGeometry,
     NetworkBoxRead,
     ServedBuilding,
 )
+from app.services import addresses, survey_template
 from app.services import buildings as buildings_service
-from app.services import survey_template
 from app.services.buildings import natural_key
 
 _to_wgs = Transformer.from_crs(geo.MEASURE_SRID, geo.STORAGE_SRID, always_xy=True).transform
@@ -57,36 +64,77 @@ def defaults() -> BoxDesignDefaults:
     )
 
 
-def design(db: Session, project: Project, request: BoxDesignRequest) -> BoxDesign:
+@dataclass
+class _Input:
+    source: DesignSource
+    demands: list[bp.Demand] = field(default_factory=list)
+    codes_of: dict[str, list[str]] = field(default_factory=dict)
+    without_users: list[str] = field(default_factory=list)
+    without_id: int = 0
+    outside: int = 0
+
+
+def _from_buildings(layer: BuildingLayer, totals: dict[str, int], include_outside: bool) -> _Input:
+    """Drawing + survey: users of a building = sum of Total Users over its Building IDs."""
+    data = _Input(DesignSource.buildings)
+    for b in layer.buildings:
+        if b.boundary_position == BoundaryPosition.outside and not include_outside:
+            data.outside += 1
+            continue
+        if not b.codes:
+            data.without_id += 1
+            continue
+        users = sum(totals[c] for c in b.codes if c in totals)
+        if users <= 0:
+            data.without_users.extend(b.codes)
+            continue
+        key = str(b.id)
+        data.codes_of[key] = b.codes
+        data.demands.append(bp.Demand(key, geo.to_measure_crs(shape(b.geometry.model_dump())), users))
+    return data
+
+
+def _from_addresses(project: Project, points: list[AddressPoint], include_outside: bool) -> _Input:
+    """No drawing: the filled Streets & numbers Excel. Each house number is a point with its Total Users."""
+    data = _Input(DesignSource.addresses)
+    boundary = to_shape(project.boundary) if project.boundary is not None else None
+    for p in points:
+        point = to_shape(p.geometry)
+        if boundary is not None and not include_outside and not boundary.covers(point):
+            data.outside += 1
+            continue
+        if not p.total_users:
+            data.without_users.append(addresses.label(p))
+            continue
+        key = str(p.id)
+        data.codes_of[key] = [addresses.label(p)]
+        data.demands.append(bp.Demand(key, geo.to_measure_crs(point), p.total_users))
+    return data
+
+
+def _input(db: Session, project: Project, include_outside: bool) -> _Input:
     layer = buildings_service.building_layer(db, project)
-    if not layer.buildings:
-        raise ConflictError("Upload the drawing (DXF/DWG) first: boxes are placed on its buildings.")
     totals = {
         r.code: r.total_users
         for r in db.scalars(select(SurveyRecord).where(SurveyRecord.project_id == project.id))
         if r.total_users is not None
     }
-    if not totals:
+    if layer.buildings and totals:
+        return _from_buildings(layer, totals, include_outside)
+    points = addresses.points(db, project)
+    if any(p.total_users for p in points):
+        return _from_addresses(project, points, include_outside)
+    if layer.buildings:
         raise ConflictError("Upload the survey Excel first: boxes are sized by each building's Total Users.")
+    raise ConflictError(
+        "Upload the drawing (DXF/DWG) and the survey Excel, or (without a drawing) the Streets & numbers "
+        "Excel with Total Users filled in."
+    )
 
-    demands: list[bp.Demand] = []
-    codes_of: dict[str, list[str]] = {}
-    without_users: list[str] = []
-    without_id = outside = 0
-    for b in layer.buildings:
-        if b.boundary_position == BoundaryPosition.outside and not request.include_outside:
-            outside += 1
-            continue
-        if not b.codes:
-            without_id += 1
-            continue
-        users = sum(totals[c] for c in b.codes if c in totals)
-        if users <= 0:
-            without_users.extend(b.codes)
-            continue
-        key = str(b.id)
-        codes_of[key] = b.codes
-        demands.append(bp.Demand(key, geo.to_measure_crs(shape(b.geometry.model_dump())), users))
+
+def design(db: Session, project: Project, request: BoxDesignRequest) -> BoxDesign:
+    data = _input(db, project, request.include_outside)
+    demands, codes_of = data.demands, data.codes_of
 
     types = [bp.BoxType(t.name, t.capacity) for t in request.box_types]
     try:
@@ -130,11 +178,11 @@ def design(db: Session, project: Project, request: BoxDesignRequest) -> BoxDesig
         users=sum(box.users for box in boxes),
         buildings_served=len(demands),
         longest_drop_m=max(drops) if drops else None,
-        without_users=sorted(without_users, key=natural_key),
-        without_id=without_id,
-        outside_skipped=outside,
+        without_users=sorted(data.without_users, key=natural_key),
+        without_id=data.without_id,
+        outside_skipped=data.outside,
     )
-    return BoxDesign(provisional=True, request=request, summary=summary, boxes=boxes)
+    return BoxDesign(provisional=True, source=data.source, request=request, summary=summary, boxes=boxes)
 
 
 def _wgs(point: Point) -> GeoJsonGeometry:
@@ -166,9 +214,9 @@ def to_xlsx(project: Project, result: BoxDesign) -> bytes:
             "Usable (after spare)",
             "Users",
             "Free",
-            "On Building ID",
-            "Buildings served",
-            "Building IDs served",
+            "On" if result.source == DesignSource.addresses else "On Building ID",
+            "Served",
+            "Addresses served" if result.source == DesignSource.addresses else "Building IDs served",
             "Longest drop (m)",
             "Latitude",
             "Longitude",
@@ -195,16 +243,18 @@ def to_xlsx(project: Project, result: BoxDesign) -> bytes:
         )
 
     ws = wb.create_sheet("Buildings")
-    _sheet(ws, ["Building ID", "Users", "Box", "Box type", "Distance to box (m)"], [18, 8, 10, 18, 14])
+    what = "Address" if result.source == DesignSource.addresses else "Building ID"
+    _sheet(ws, [what, "Users", "Box", "Box type", "Distance to box (m)"], [30, 8, 10, 18, 14])
     rows = [(s, b) for b in result.boxes for s in b.served]
     rows.sort(key=lambda r: natural_key(r[0].codes[0]))
     for s, b in rows:
         ws.append([", ".join(s.codes), s.users, b.label, b.box_type, s.distance_m])
 
     ws = wb.create_sheet("Not served")
-    _sheet(ws, ["Building ID", "Reason"], [18, 60])
+    _sheet(ws, [what, "Reason"], [30, 60])
+    reason = "No Total Users filled in" if result.source == DesignSource.addresses else "No Total Users in the survey"
     for code in result.summary.without_users:
-        ws.append([code, "No Total Users in the survey"])
+        ws.append([code, reason])
     if result.summary.without_id:
         ws.append([None, f"{result.summary.without_id} buildings without a Building ID on the drawing"])
     if result.summary.outside_skipped:
@@ -214,6 +264,8 @@ def to_xlsx(project: Project, result: BoxDesign) -> bytes:
     r = result.request
     info.append(["Status", "PROVISIONAL — prototype placement, values not confirmed by the Design Team"])
     info.append(["Project", project.name])
+    source = "Streets & numbers Excel (OpenStreetMap house numbers + field data)"
+    info.append(["Users from", source if result.source == DesignSource.addresses else "Drawing + survey Excel"])
     for t in r.box_types:
         info.append(["Box type", f"{t.name}: {t.capacity} users"])
     info.append(["Max drop (m)", r.max_drop_m if r.max_drop_m is not None else "no limit"])
