@@ -14,6 +14,7 @@ from fastapi.testclient import TestClient
 from openpyxl import load_workbook
 from pyproj import Transformer
 
+from app import rules
 from app.config import get_settings
 from app.errors import ExternalServiceError
 from app.importers import osm
@@ -103,6 +104,9 @@ def test_streets_after_first_kml(client: TestClient, fake_osm: list[Any]) -> Non
     assert by_number["3"][3] == "حي تجريبي"
     assert by_number["7"][0] == "حارة جانبية"  # a building way with a number → its centre
     assert 30 < by_number["12"][5] < 31 and 31 < by_number["12"][6] < 32  # lat, lon
+    cols = rules.survey_columns().columns
+    assert addresses[0][8:] == (cols["floors"], cols["total_users"])  # empty, for the field survey
+    assert all(a[8:] == (None, None) for a in addresses[1:])
 
     assert rows[0] == (
         "Street (Arabic)",

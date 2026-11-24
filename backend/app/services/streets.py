@@ -22,7 +22,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 from shapely.geometry.base import BaseGeometry
 from shapely.strtree import STRtree
 
-from app import geo, storage
+from app import geo, rules, storage
 from app.config import get_settings
 from app.errors import ConflictError, ExternalServiceError
 from app.importers import osm
@@ -215,6 +215,8 @@ def to_xlsx(project: Project) -> bytes:
     addr = wb.active
     assert addr is not None
     addr.title = "Addresses"
+    # Left empty for the field team: OSM has no floors or users. Same titles as the survey template.
+    survey = rules.survey_columns().columns
     _header(
         addr,
         [
@@ -226,11 +228,15 @@ def to_xlsx(project: Project) -> bytes:
             "Latitude",
             "Longitude",
             "Street from",
+            survey["floors"],
+            survey["total_users"],
         ],
-        [34, 34, 14, 26, 11, 13, 13, 22],
+        [34, 34, 14, 26, 11, 13, 13, 22, 17, 12],
     )
     for a in addresses:
-        addr.append([a.street_ar, a.street_en, a.housenumber, a.district, a.postcode, a.lat, a.lon, a.street_source])
+        addr.append(
+            [a.street_ar, a.street_en, a.housenumber, a.district, a.postcode, a.lat, a.lon, a.street_source, None, None]
+        )
 
     ws = wb.create_sheet("Streets")
     _header(
@@ -258,6 +264,7 @@ def to_xlsx(project: Project) -> bytes:
     info.append(["Streets", len(rows)])
     info.append(["Area", "OSM house numbers and named streets inside the project boundary"])
     info.append(["Note", "House numbers are street numbers (Building Number), not the drawing's Building IDs"])
+    info.append(["Empty columns", f"{survey['floors']} and {survey['total_users']}: to be filled by the survey"])
     fetched = datetime.fromtimestamp(_cache_path(project).stat().st_mtime, UTC)
     info.append(["Downloaded", fetched.strftime("%Y-%m-%d")])
     info.column_dimensions["A"].width = 14
