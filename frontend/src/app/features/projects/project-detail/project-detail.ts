@@ -1,5 +1,5 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, computed, effect, inject, input, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { filter, switchMap } from 'rxjs';
 
@@ -11,6 +11,8 @@ import { ValidationIssue } from '../../../api/models/validation-issue';
 import { ConfirmDialogService } from '../../../shared/confirm-dialog/confirm-dialog-service';
 import { BUILDING_REVIEW_KEYS, BuildingReviewKey } from '../../../shared/labels';
 import { ProjectFormDialogService } from '../project-form/project-form-dialog-service';
+import { BoxDesignPanel } from './box-design/box-design-panel';
+import { BoxDesignStore } from './box-design/box-design-store';
 import { BuildingLegend } from './building-legend/building-legend';
 import { ProjectDetailStore } from './project-detail-store';
 import { ProjectFiles } from './project-files/project-files';
@@ -30,13 +32,15 @@ import { ValidationReport } from './validation-report/validation-report';
     BuildingLegend,
     SurveySummary,
     ValidationReport,
+    BoxDesignPanel,
     ProjectFiles,
   ],
-  providers: [ProjectDetailStore],
+  providers: [ProjectDetailStore, BoxDesignStore],
   templateUrl: './project-detail.html',
 })
 export class ProjectDetail {
   protected readonly store = inject(ProjectDetailStore);
+  protected readonly boxes = inject(BoxDesignStore);
   private readonly projectForm = inject(ProjectFormDialogService);
   private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly router = inject(Router);
@@ -74,6 +78,26 @@ export class ProjectDetail {
     return all;
   });
 
+  /** Why boxes cannot be placed yet, or null. */
+  protected readonly boxesBlocked = computed(() => {
+    const buildings = this.store.buildings();
+    if (!buildings?.summary.total) {
+      return 'Upload the drawing (DXF/DWG) and the survey Excel: boxes are placed on the buildings and sized by their Total Users.';
+    }
+    if (!this.store.survey()?.summary.total_users) {
+      return "Upload the survey Excel: boxes are sized by each building's Total Users.";
+    }
+    return null;
+  });
+
+  /** Changes when a file is added, removed or processed. */
+  private readonly filesKey = computed(() =>
+    this.store
+      .files()
+      .map((f) => `${f.id}:${f.status}`)
+      .join('|'),
+  );
+
   /** Review categories shown on the map. */
   protected readonly visible = signal<ReadonlySet<BuildingReviewKey>>(
     new Set(BUILDING_REVIEW_KEYS),
@@ -83,6 +107,11 @@ export class ProjectDetail {
 
   constructor() {
     effect(() => this.store.load(this.id()));
+    // A design made before the drawing or survey changed no longer matches the map.
+    effect(() => {
+      this.filesKey();
+      untracked(() => this.boxes.clear());
+    });
   }
 
   protected showIssue(issue: ValidationIssue, mapCard: HTMLElement): void {

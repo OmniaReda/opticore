@@ -1,7 +1,7 @@
 import { BuildingRead } from '../../../../api/models/building-read';
 import { SurveyRecordRead } from '../../../../api/models/survey-record-read';
-import { sampleSurveyRecord } from '../../../../testing/fixtures';
-import { buildingTooltip } from './map-styles';
+import { sampleBoxDesign, sampleSurveyRecord } from '../../../../testing/fixtures';
+import { boxTooltip, buildingTooltip } from './map-styles';
 
 function building(overrides: Partial<BuildingRead>): BuildingRead {
   return {
@@ -46,5 +46,12 @@ describe('buildingTooltip', () => {
     expect(buildingTooltip(building({ codes: [], status: 'no_id' }), survey)).toBe(
       'No ID · 120 m² · No ID',
     );
+  });
+});
+
+describe('boxTooltip', () => {
+  it('names the box, its type, load and buildings', () => {
+    const box = sampleBoxDesign().boxes[1];
+    expect(boxTooltip(box)).toBe('NB-002 · Test-16 · 8/16 users · on ID 3, 3-2 · serves 3, 3-2');
   });
 });

@@ -9,3 +9,4 @@ export { BuildingsService } from './services/buildings.service';
 export { SurveyService } from './services/survey.service';
 export { ValidationService } from './services/validation.service';
 export { ExportsService } from './services/exports.service';
+export { NetworkBoxesService } from './services/network-boxes.service';

@@ -15,12 +15,13 @@ import View from 'ol/View';
 import { defaults as defaultControls, ScaleLine } from 'ol/control';
 import { createEmpty, extend, isEmpty } from 'ol/extent';
 import GeoJSON from 'ol/format/GeoJSON';
-import { Geometry } from 'ol/geom';
+import { Geometry, LineString, Point } from 'ol/geom';
 import TileLayer from 'ol/layer/Tile';
 import VectorLayer from 'ol/layer/Vector';
 import OSM from 'ol/source/OSM';
 import VectorSource from 'ol/source/Vector';
 
+import { BoxDesign } from '../../../../api/models/box-design';
 import { BuildingLayer } from '../../../../api/models/building-layer';
 import { GeoJsonGeometry } from '../../../../api/models/geo-json-geometry';
 import { ProjectLayers } from '../../../../api/models/project-layers';
@@ -29,6 +30,8 @@ import { BUILDING_REVIEW_KEYS, BuildingReviewKey } from '../../../../shared/labe
 import {
   BOUNDARY_STYLE,
   FOCUS_STYLE,
+  boxStyle,
+  boxTooltip,
   buildingStyle,
   buildingTooltip,
   featureStyle,
@@ -91,6 +94,8 @@ export class ProjectMap {
   readonly visible = input<ReadonlySet<BuildingReviewKey>>(new Set(BUILDING_REVIEW_KEYS));
   /** A place to zoom to and mark (e.g. a validation issue). A new object zooms again. */
   readonly focus = input<GeoJsonGeometry | null>(null);
+  /** Network Boxes of the last design run, with a line to each building they serve. */
+  readonly boxes = input<BoxDesign | null>(null);
 
   protected readonly hoverName = signal<string | null>(null);
   protected readonly isEmptyMap = signal(true);
@@ -100,6 +105,7 @@ export class ProjectMap {
   private readonly featureSource = new VectorSource<OlFeature<Geometry>>();
   private readonly buildingSource = new VectorSource<OlFeature<Geometry>>();
   private readonly focusSource = new VectorSource<OlFeature<Geometry>>();
+  private readonly boxSource = new VectorSource<OlFeature<Geometry>>();
   private readonly buildingLayer = new VectorLayer({
     source: this.buildingSource,
     style: (f) => buildingStyle(f, this.visible()),
@@ -123,6 +129,11 @@ export class ProjectMap {
       this.buildingLayer.changed(); // re-run the style function
     });
     effect(() => {
+      if (this.map()) {
+        this.showBoxes(this.boxes());
+      }
+    });
+    effect(() => {
       const map = this.map();
       const focus = this.focus();
       if (map) {
@@ -140,6 +151,7 @@ export class ProjectMap {
         new VectorLayer({ source: this.boundarySource, style: BOUNDARY_STYLE }),
         this.buildingLayer,
         new VectorLayer({ source: this.featureSource, style: featureStyle }),
+        new VectorLayer({ source: this.boxSource, style: boxStyle }),
         new VectorLayer({ source: this.focusSource, style: FOCUS_STYLE }),
       ],
       view: new View({ center: [0, 0], zoom: 2 }),
@@ -150,6 +162,21 @@ export class ProjectMap {
       this.hoverName.set(typeof name === 'string' ? name : null);
     });
     return map;
+  }
+
+  private showBoxes(design: BoxDesign | null): void {
+    this.boxSource.clear();
+    for (const box of design?.boxes ?? []) {
+      const at = geojson.readGeometry(box.geometry);
+      for (const s of box.served) {
+        const to = geojson.readGeometry(s.geometry);
+        if (s.distance_m > 0 && at instanceof Point && to instanceof Point) {
+          const line = new LineString([at.getCoordinates(), to.getCoordinates()]);
+          this.boxSource.addFeature(new OlFeature({ geometry: line }));
+        }
+      }
+      this.boxSource.addFeature(toOl(box.geometry, boxTooltip(box)));
+    }
   }
 
   private showFocus(map: OlMap, focus: GeoJsonGeometry | null): void {

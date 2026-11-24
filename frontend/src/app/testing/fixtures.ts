@@ -1,4 +1,5 @@
 /** SAMPLE API objects for unit tests — not real project data. */
+import { BoxDesign } from '../api/models/box-design';
 import { BuildingLayer } from '../api/models/building-layer';
 import { ProjectFileRead } from '../api/models/project-file-read';
 import { ProjectLayers } from '../api/models/project-layers';
@@ -168,6 +169,55 @@ export function sampleValidation(overrides: Partial<ValidationReport> = {}): Val
         row_number: null,
         message: 'Outline of 200 m²',
         geometry: point,
+      },
+    ],
+    ...overrides,
+  };
+}
+
+/** SAMPLE box design (test box types, not real ones). */
+export function sampleBoxDesign(overrides: Partial<BoxDesign> = {}): BoxDesign {
+  const at = { type: 'Point', coordinates: [31.2, 30.1] };
+  return {
+    provisional: true,
+    request: {
+      box_types: [{ name: 'Test-16', capacity: 16 }],
+      max_drop_m: 50,
+      spare_percent: 0,
+      include_outside: false,
+    },
+    summary: {
+      boxes: 2,
+      by_type: [{ box_type: 'Test-16', capacity: 16, count: 2, users: 18 }],
+      users: 18,
+      buildings_served: 2,
+      longest_drop_m: 0,
+      without_users: ['2', '5'],
+      without_id: 1,
+      outside_skipped: 1,
+    },
+    boxes: [
+      {
+        label: 'NB-001',
+        box_type: 'Test-16',
+        capacity: 16,
+        usable: 16,
+        users: 10,
+        host_codes: ['1'],
+        dedicated: false,
+        geometry: at,
+        served: [{ codes: ['1'], users: 10, distance_m: 0, geometry: at }],
+      },
+      {
+        label: 'NB-002',
+        box_type: 'Test-16',
+        capacity: 16,
+        usable: 16,
+        users: 8,
+        host_codes: ['3', '3-2'],
+        dedicated: false,
+        geometry: at,
+        served: [{ codes: ['3', '3-2'], users: 8, distance_m: 0, geometry: at }],
       },
     ],
     ...overrides,

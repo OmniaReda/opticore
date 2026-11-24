@@ -1,7 +1,8 @@
 import { FeatureLike } from 'ol/Feature';
-import { Circle, Fill, Stroke, Style } from 'ol/style';
+import { Circle, Fill, RegularShape, Stroke, Style } from 'ol/style';
 
 import { BuildingRead } from '../../../../api/models/building-read';
+import { NetworkBoxRead } from '../../../../api/models/network-box-read';
 import { SurveyRecordRead } from '../../../../api/models/survey-record-read';
 import {
   BUILDING_REVIEW_COLOR,
@@ -103,3 +104,27 @@ export const FOCUS_STYLE = new Style({
     fill: new Fill({ color: 'rgba(13, 110, 253, 0.15)' }),
   }),
 });
+
+/** Network Box (square) and the straight line from a box to each building it serves. */
+export const BOX_STYLE = new Style({
+  image: new RegularShape({
+    points: 4,
+    radius: 7,
+    angle: Math.PI / 4,
+    fill: new Fill({ color: '#6f42c1' }),
+    stroke: new Stroke({ color: '#fff', width: 1.5 }),
+  }),
+});
+export const DROP_STYLE = new Style({
+  stroke: new Stroke({ color: 'rgba(111, 66, 193, 0.7)', width: 1.2, lineDash: [3, 3] }),
+});
+
+export function boxStyle(feature: FeatureLike): Style {
+  return feature.getGeometry()?.getType() === 'Point' ? BOX_STYLE : DROP_STYLE;
+}
+
+export function boxTooltip(box: NetworkBoxRead): string {
+  const ids = box.served.flatMap((s) => s.codes);
+  const list = ids.length > 8 ? `${ids.slice(0, 8).join(', ')} …` : ids.join(', ');
+  return `${box.label} · ${box.box_type} · ${box.users}/${box.usable} users · on ID ${box.host_codes.join(', ')} · serves ${list}`;
+}

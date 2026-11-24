@@ -1,0 +1,15 @@
+# Network Box placement (design, Stage 04). Box types and their capacities come from the Design Team.
+# Nothing here is known yet: the values are entered on the project page for each design run. When the
+# Design Team confirms them, put them here (they become the form's defaults) and set approved_by / status.
+source: "Not provided yet — box types, capacities and drop distance to be given by the Design Team"
+approved_by: null
+status: TBC
+
+# Box types, e.g. {name: "<type>", capacity: <users per box>}. Empty = enter them on the page.
+box_types: []
+
+# Longest straight-line distance from a box to a building it serves (metres). null = no limit.
+max_drop_m: null
+
+# Share of each box kept free for future users (percent). null = no spare kept.
+spare_percent: null

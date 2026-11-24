@@ -39,6 +39,7 @@
       [survey]="store.surveyByCode()"
       [focus]="focus()"
       [visible]="visible()"
+      [boxes]="boxes.design()"
     />
     @if (store.buildings(); as buildings) {
       @if (buildings.summary.total || buildings.summary.orphan_ids) {
@@ -48,6 +49,17 @@
       }
     }
   </section>
+
+  <app-box-design-panel
+    [defaults]="boxes.defaults.value()"
+    [design]="boxes.design()"
+    [busy]="boxes.busy()"
+    [error]="boxes.error()"
+    [blocked]="boxesBlocked()"
+    [hasBoundary]="!!store.layers()?.boundary"
+    (run)="boxes.run(project.id, $event); mapCard.scrollIntoView({ behavior: 'smooth' })"
+    (download)="boxes.download(project.id, $event)"
+  />
 
   @if (store.validation(); as validation) {
     @if (validation.rules.length) {

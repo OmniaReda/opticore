@@ -23,6 +23,12 @@ class ConflictError(AppError):
     status_code = status.HTTP_409_CONFLICT
 
 
+class InvalidInputError(AppError):
+    """Input that passes the schema but cannot be used (e.g. no usable box capacity)."""
+
+    status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
+
+
 class UnsupportedFileTypeError(AppError):
     status_code = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
 

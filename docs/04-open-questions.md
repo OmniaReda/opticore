@@ -17,6 +17,18 @@ Status: sent / pending. Update with answers + who confirmed.
 - [ ] Splitter ratios; cable types/sizes and sizing rule
 - [ ] Routing only along streets?
 
+### Network Box placement (prototype in `app/design/box_placement.py`, values in `rules/network_boxes.yaml`)
+The prototype groups nearby buildings until the largest box is full, puts the box on the group's building
+closest to its users, and picks the smallest type that holds them. Values are entered per run on the
+project page until confirmed. To confirm with the Design Team:
+- [ ] Box types and users per box (→ `box_types`)
+- [ ] Spare share kept free in each box (→ `spare_percent`)
+- [ ] Max box → building distance, and is it straight line or along the street / drop route? (→ `max_drop_m`)
+- [ ] May one box serve buildings on both sides of a street?
+- [ ] Where is a box mounted (building wall, pole, manhole)? Does it have to be on a served building?
+- [ ] A building with more users than the largest box: several boxes on it, or a bigger box / a different design?
+- [ ] Are buildings marked Delete / Not Count / Re-survey in the survey left out of the design?
+
 ## Lengths & quantities (Stage 05)
 - [ ] Cable length = route geometry only, or slack added? Rule?
 - [ ] BOQ items beyond boxes and cables (splitters, closures, ducts, poles…)?

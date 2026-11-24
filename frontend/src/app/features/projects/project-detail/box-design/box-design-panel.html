@@ -1,0 +1,177 @@
+<section class="card mb-4" aria-labelledby="boxes-title">
+  <div class="card-header d-flex align-items-center gap-2">
+    <h2 id="boxes-title" class="h6 fw-semibold mb-0 me-auto">Network Boxes</h2>
+    <span
+      class="badge text-bg-warning"
+      title="Prototype placement method; box types and limits are not confirmed by the Design Team"
+    >
+      Provisional
+    </span>
+  </div>
+  <div class="card-body">
+    @if (blocked(); as reason) {
+      <p class="text-muted small mb-0">{{ reason }}</p>
+    } @else {
+      <form [formGroup]="form" (ngSubmit)="submit('run')" novalidate>
+        <p class="small text-muted mb-2">
+          Box types and how many users each one serves. Boxes are placed on the buildings and sized
+          by each building's Total Users from the survey.
+        </p>
+        <div formArrayName="types">
+          @for (t of types.controls; track t; let i = $index) {
+            <div class="row g-2 align-items-start mb-2" [formGroupName]="i">
+              <div class="col-sm-5">
+                <label class="visually-hidden" [for]="'box-name-' + i">Box type</label>
+                <input
+                  class="form-control form-control-sm"
+                  [id]="'box-name-' + i"
+                  formControlName="name"
+                  placeholder="Box type name"
+                  dir="auto"
+                  [class.is-invalid]="t.controls.name.invalid && t.controls.name.touched"
+                />
+              </div>
+              <div class="col-sm-4">
+                <div class="input-group input-group-sm">
+                  <label class="visually-hidden" [for]="'box-capacity-' + i">Users per box</label>
+                  <input
+                    class="form-control"
+                    type="number"
+                    min="1"
+                    step="1"
+                    [id]="'box-capacity-' + i"
+                    formControlName="capacity"
+                    placeholder="Users"
+                    [class.is-invalid]="t.controls.capacity.invalid && t.controls.capacity.touched"
+                  />
+                  <span class="input-group-text">users</span>
+                </div>
+              </div>
+              <div class="col-sm-3">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-danger"
+                  (click)="removeType(i)"
+                  [attr.aria-label]="'Remove box type ' + (i + 1)"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+        <button type="button" class="btn btn-sm btn-link px-0 mb-3" (click)="addType()">
+          + Add box type
+        </button>
+
+        <div class="row g-3 mb-3">
+          <div class="col-sm-4">
+            <label class="form-label small mb-1" for="max-drop">Max distance box → building</label>
+            <div class="input-group input-group-sm">
+              <input
+                id="max-drop"
+                class="form-control"
+                type="number"
+                min="1"
+                formControlName="maxDrop"
+                placeholder="No limit"
+                [class.is-invalid]="form.controls.maxDrop.invalid"
+              />
+              <span class="input-group-text">m</span>
+            </div>
+          </div>
+          <div class="col-sm-4">
+            <label class="form-label small mb-1" for="spare">Spare kept free in each box</label>
+            <div class="input-group input-group-sm">
+              <input
+                id="spare"
+                class="form-control"
+                type="number"
+                min="0"
+                max="99"
+                formControlName="spare"
+                placeholder="0"
+                [class.is-invalid]="form.controls.spare.invalid"
+              />
+              <span class="input-group-text">%</span>
+            </div>
+          </div>
+          @if (hasBoundary()) {
+            <div class="col-sm-4 d-flex align-items-end">
+              <div class="form-check small">
+                <input
+                  id="include-outside"
+                  class="form-check-input"
+                  type="checkbox"
+                  formControlName="includeOutside"
+                />
+                <label class="form-check-label" for="include-outside">
+                  Also serve buildings outside the boundary
+                </label>
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-sm btn-primary" [disabled]="busy()">
+            @if (busy()) {
+              <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+            }
+            Place boxes
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-secondary"
+            [disabled]="busy()"
+            (click)="submit('download')"
+          >
+            Download Excel
+          </button>
+        </div>
+      </form>
+
+      @if (error(); as message) {
+        <div class="alert alert-danger small mt-3 mb-0" role="alert" dir="auto">{{ message }}</div>
+      }
+
+      @if (design(); as d) {
+        @let s = d.summary;
+        <hr />
+        <dl class="row mb-0 small">
+          <dt class="col-sm-4">Boxes</dt>
+          <dd class="col-sm-8">
+            <strong>{{ s.boxes | number }}</strong>
+            @for (t of s.by_type; track t.box_type) {
+              <span class="ms-2 text-nowrap" dir="auto">
+                · {{ t.box_type }} ({{ t.capacity }}): <strong>{{ t.count | number }}</strong>
+              </span>
+            }
+          </dd>
+          <dt class="col-sm-4">Users served</dt>
+          <dd class="col-sm-8">
+            {{ s.users | number }} in {{ s.buildings_served | number }} buildings
+          </dd>
+          <dt class="col-sm-4">Longest box → building</dt>
+          <dd class="col-sm-8">
+            {{ s.longest_drop_m === null ? '—' : (s.longest_drop_m | number: '1.0-1') + ' m' }}
+            <span class="text-muted">(straight line, not along streets)</span>
+          </dd>
+          <dt class="col-sm-4">Not served</dt>
+          <dd class="col-sm-8" [class.text-danger]="s.without_users.length > 0">
+            {{ s.without_users.length | number }} Building IDs without Total Users in the survey
+            @if (s.without_users.length) {
+              <div class="text-muted" dir="ltr">{{ listed(s.without_users) }}</div>
+            }
+            @if (s.without_id) {
+              <div>{{ s.without_id | number }} buildings without a Building ID</div>
+            }
+            @if (s.outside_skipped) {
+              <div>{{ s.outside_skipped | number }} buildings outside the boundary (left out)</div>
+            }
+          </dd>
+        </dl>
+      }
+    }
+  </div>
+</section>

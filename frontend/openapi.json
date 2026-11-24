@@ -870,6 +870,124 @@
           }
         }
       }
+    },
+    "/network-boxes/defaults": {
+      "get": {
+        "tags": [
+          "network boxes"
+        ],
+        "summary": "Get Box Defaults",
+        "description": "Box types, drop limit and spare share from backend/app/rules/network_boxes.yaml (empty until confirmed).",
+        "operationId": "get_box_defaults",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BoxDesignDefaults"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{project_id}/network-boxes/design": {
+      "post": {
+        "tags": [
+          "network boxes"
+        ],
+        "summary": "Design Boxes",
+        "description": "Place Network Boxes on the drawing's buildings, sized by the survey's Total Users (provisional).",
+        "operationId": "design_boxes",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BoxDesignRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BoxDesign"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "No drawing or no survey users yet"
+          },
+          "422": {
+            "description": "Unusable values"
+          }
+        }
+      }
+    },
+    "/projects/{project_id}/network-boxes/design/xlsx": {
+      "post": {
+        "tags": [
+          "network boxes"
+        ],
+        "summary": "Export Box Design",
+        "description": "The same design as Excel: boxes, the box of each building, buildings not served, settings.",
+        "operationId": "export_box_design",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BoxDesignRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}
+            }
+          },
+          "409": {
+            "description": "No drawing or no survey users yet"
+          },
+          "422": {
+            "description": "Unusable values"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -933,6 +1051,251 @@
           "perimeter_m"
         ],
         "title": "BoundaryRead"
+      },
+      "BoxDesign": {
+        "properties": {
+          "provisional": {
+            "type": "boolean",
+            "title": "Provisional",
+            "description": "Always true for now: prototype method and unconfirmed values"
+          },
+          "request": {
+            "$ref": "#/components/schemas/BoxDesignRequest"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/BoxDesignSummary"
+          },
+          "boxes": {
+            "items": {
+              "$ref": "#/components/schemas/NetworkBoxRead"
+            },
+            "type": "array",
+            "title": "Boxes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provisional",
+          "request",
+          "summary",
+          "boxes"
+        ],
+        "title": "BoxDesign"
+      },
+      "BoxDesignDefaults": {
+        "properties": {
+          "provisional": {
+            "type": "boolean",
+            "title": "Provisional",
+            "description": "True while the box rules are not approved (status TBC)"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "box_types": {
+            "items": {
+              "$ref": "#/components/schemas/BoxTypeIn"
+            },
+            "type": "array",
+            "title": "Box Types"
+          },
+          "max_drop_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Drop M"
+          },
+          "spare_percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spare Percent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provisional",
+          "source",
+          "box_types",
+          "max_drop_m",
+          "spare_percent"
+        ],
+        "title": "BoxDesignDefaults",
+        "description": "Values from backend/app/rules/network_boxes.yaml, used to fill the form."
+      },
+      "BoxDesignRequest": {
+        "properties": {
+          "box_types": {
+            "items": {
+              "$ref": "#/components/schemas/BoxTypeIn"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Box Types"
+          },
+          "max_drop_m": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 5000.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Drop M",
+            "description": "Longest straight line from a box to a building it serves"
+          },
+          "spare_percent": {
+            "type": "number",
+            "exclusiveMaximum": 100.0,
+            "minimum": 0.0,
+            "title": "Spare Percent",
+            "description": "Share of each box kept free",
+            "default": 0
+          },
+          "include_outside": {
+            "type": "boolean",
+            "title": "Include Outside",
+            "description": "Also serve buildings outside the project boundary",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "box_types"
+        ],
+        "title": "BoxDesignRequest",
+        "description": "Values for one design run. They come from the Design Team (entered on the page), never from code."
+      },
+      "BoxDesignSummary": {
+        "properties": {
+          "boxes": {
+            "type": "integer",
+            "title": "Boxes"
+          },
+          "by_type": {
+            "items": {
+              "$ref": "#/components/schemas/BoxTypeCount"
+            },
+            "type": "array",
+            "title": "By Type"
+          },
+          "users": {
+            "type": "integer",
+            "title": "Users",
+            "description": "Users served (sum of the survey's Total Users)"
+          },
+          "buildings_served": {
+            "type": "integer",
+            "title": "Buildings Served"
+          },
+          "longest_drop_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Longest Drop M"
+          },
+          "without_users": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Without Users",
+            "description": "Building IDs on the drawing with no Total Users in the survey"
+          },
+          "without_id": {
+            "type": "integer",
+            "title": "Without Id",
+            "description": "Buildings with no Building ID (no survey data → not served)"
+          },
+          "outside_skipped": {
+            "type": "integer",
+            "title": "Outside Skipped",
+            "description": "Buildings outside the boundary left out"
+          }
+        },
+        "type": "object",
+        "required": [
+          "boxes",
+          "by_type",
+          "users",
+          "buildings_served",
+          "longest_drop_m",
+          "without_users",
+          "without_id",
+          "outside_skipped"
+        ],
+        "title": "BoxDesignSummary"
+      },
+      "BoxTypeCount": {
+        "properties": {
+          "box_type": {
+            "type": "string",
+            "title": "Box Type"
+          },
+          "capacity": {
+            "type": "integer",
+            "title": "Capacity"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "users": {
+            "type": "integer",
+            "title": "Users"
+          }
+        },
+        "type": "object",
+        "required": [
+          "box_type",
+          "capacity",
+          "count",
+          "users"
+        ],
+        "title": "BoxTypeCount"
+      },
+      "BoxTypeIn": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "capacity": {
+            "type": "integer",
+            "maximum": 10000.0,
+            "minimum": 1.0,
+            "title": "Capacity",
+            "description": "Users one box can serve"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "capacity"
+        ],
+        "title": "BoxTypeIn"
       },
       "BuildingLayer": {
         "properties": {
@@ -1247,6 +1610,69 @@
         ],
         "title": "IssueSeverity"
       },
+      "NetworkBoxRead": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "Box number, e.g. NB-001"
+          },
+          "box_type": {
+            "type": "string",
+            "title": "Box Type"
+          },
+          "capacity": {
+            "type": "integer",
+            "title": "Capacity"
+          },
+          "usable": {
+            "type": "integer",
+            "title": "Usable",
+            "description": "Capacity minus the spare share"
+          },
+          "users": {
+            "type": "integer",
+            "title": "Users"
+          },
+          "host_codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Host Codes",
+            "description": "Building IDs of the building the box is placed on"
+          },
+          "dedicated": {
+            "type": "boolean",
+            "title": "Dedicated",
+            "description": "A full box of a building with more users than the largest box"
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/GeoJsonGeometry",
+            "description": "Box location (EPSG:4326)"
+          },
+          "served": {
+            "items": {
+              "$ref": "#/components/schemas/ServedBuilding"
+            },
+            "type": "array",
+            "title": "Served"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "box_type",
+          "capacity",
+          "usable",
+          "users",
+          "host_codes",
+          "dedicated",
+          "geometry",
+          "served"
+        ],
+        "title": "NetworkBoxRead"
+      },
       "OrphanLabelRead": {
         "properties": {
           "id": {
@@ -1529,6 +1955,40 @@
           "count"
         ],
         "title": "RuleSummary"
+      },
+      "ServedBuilding": {
+        "properties": {
+          "codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Codes",
+            "description": "Building IDs of the building"
+          },
+          "users": {
+            "type": "integer",
+            "title": "Users",
+            "description": "Users of this building served by this box"
+          },
+          "distance_m": {
+            "type": "number",
+            "title": "Distance M",
+            "description": "Straight line from the box to the building outline (UTM 36N)"
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/GeoJsonGeometry",
+            "description": "A point inside the building (EPSG:4326)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "codes",
+          "users",
+          "distance_m",
+          "geometry"
+        ],
+        "title": "ServedBuilding"
       },
       "SurveyLayer": {
         "properties": {

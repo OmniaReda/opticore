@@ -230,3 +230,83 @@ class ValidationReport(BaseModel):
     has_survey: bool
     rules: list[RuleSummary] = Field(description="Every check that ran, with its number of issues")
     issues: list[ValidationIssue]
+
+
+# --- Network Box placement (design) ---
+
+
+class BoxTypeIn(BaseModel):
+    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=50)]
+    capacity: int = Field(ge=1, le=10000, description="Users one box can serve")
+
+
+class BoxDesignRequest(BaseModel):
+    """Values for one design run. They come from the Design Team (entered on the page), never from code."""
+
+    box_types: list[BoxTypeIn] = Field(min_length=1, max_length=20)
+    max_drop_m: float | None = Field(
+        default=None, gt=0, le=5000, description="Longest straight line from a box to a building it serves"
+    )
+    spare_percent: float = Field(default=0, ge=0, lt=100, description="Share of each box kept free")
+    include_outside: bool = Field(default=False, description="Also serve buildings outside the project boundary")
+
+    @model_validator(mode="after")
+    def _unique_names(self) -> Self:
+        names = [t.name.casefold() for t in self.box_types]
+        if len(set(names)) != len(names):
+            raise ValueError("Box type names must be different")
+        return self
+
+
+class BoxDesignDefaults(BaseModel):
+    """Values from backend/app/rules/network_boxes.yaml, used to fill the form."""
+
+    provisional: bool = Field(description="True while the box rules are not approved (status TBC)")
+    source: str
+    box_types: list[BoxTypeIn]
+    max_drop_m: float | None
+    spare_percent: float | None
+
+
+class ServedBuilding(BaseModel):
+    codes: list[str] = Field(description="Building IDs of the building")
+    users: int = Field(description="Users of this building served by this box")
+    distance_m: float = Field(description="Straight line from the box to the building outline (UTM 36N)")
+    geometry: GeoJsonGeometry = Field(description="A point inside the building (EPSG:4326)")
+
+
+class NetworkBoxRead(BaseModel):
+    label: str = Field(description="Box number, e.g. NB-001")
+    box_type: str
+    capacity: int
+    usable: int = Field(description="Capacity minus the spare share")
+    users: int
+    host_codes: list[str] = Field(description="Building IDs of the building the box is placed on")
+    dedicated: bool = Field(description="A full box of a building with more users than the largest box")
+    geometry: GeoJsonGeometry = Field(description="Box location (EPSG:4326)")
+    served: list[ServedBuilding]
+
+
+class BoxTypeCount(BaseModel):
+    box_type: str
+    capacity: int
+    count: int
+    users: int
+
+
+class BoxDesignSummary(BaseModel):
+    boxes: int
+    by_type: list[BoxTypeCount]
+    users: int = Field(description="Users served (sum of the survey's Total Users)")
+    buildings_served: int
+    longest_drop_m: float | None
+    without_users: list[str] = Field(description="Building IDs on the drawing with no Total Users in the survey")
+    without_id: int = Field(description="Buildings with no Building ID (no survey data → not served)")
+    outside_skipped: int = Field(description="Buildings outside the boundary left out")
+
+
+class BoxDesign(BaseModel):
+    provisional: bool = Field(description="Always true for now: prototype method and unconfirmed values")
+    request: BoxDesignRequest
+    summary: BoxDesignSummary
+    boxes: list[NetworkBoxRead]

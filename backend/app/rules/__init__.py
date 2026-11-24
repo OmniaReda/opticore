@@ -128,3 +128,21 @@ class ValidationRules(RulesFile):
 @lru_cache
 def validation() -> ValidationRules:
     return ValidationRules.model_validate(_load("validation.yaml"))
+
+
+class BoxTypeRule(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1)
+    capacity: int = Field(ge=1, description="Users one box can serve")
+
+
+class NetworkBoxRules(RulesFile):
+    box_types: list[BoxTypeRule]
+    max_drop_m: float | None = Field(gt=0)
+    spare_percent: float | None = Field(ge=0, lt=100)
+
+
+@lru_cache
+def network_boxes() -> NetworkBoxRules:
+    return NetworkBoxRules.model_validate(_load("network_boxes.yaml"))
