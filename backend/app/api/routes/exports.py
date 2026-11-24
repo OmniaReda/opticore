@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from fastapi.responses import Response
 
 from app.api.deps import DbSession, ProjectDep
-from app.services import exports
+from app.services import exports, map_sheet, streets
 
 router = APIRouter(prefix="/projects/{project_id}/export", tags=["exports"])
 
@@ -32,3 +32,24 @@ def export_xlsx(project: ProjectDep, db: DbSession) -> Response:
 def export_dxf(project: ProjectDep, db: DbSession) -> Response:
     """Boundary + buildings + Building IDs in UTM 36N metres, one layer per review status (AutoCAD)."""
     return _file(exports.to_dxf(db, project), DXF, "project.dxf")
+
+
+@router.get(
+    "/streets",
+    response_class=Response,
+    responses={200: {"content": {XLSX: {}}}, 409: {"description": "No boundary yet"}, 502: {"description": "OSM down"}},
+)
+def export_streets(project: ProjectDep) -> Response:
+    """Named streets inside the project boundary with their OpenStreetMap names (Arabic / English) and length."""
+    return _file(streets.to_xlsx(project), XLSX, "streets.xlsx")
+
+
+@router.get(
+    "/survey-sheet",
+    response_class=Response,
+    responses={200: {"content": {XLSX: {}}}, 409: {"description": "No drawing yet"}},
+)
+def export_survey_sheet(project: ProjectDep, db: DbSession) -> Response:
+    """The whole map in the survey template: one row per Building ID with street name (survey, else nearest
+    OpenStreetMap street), GPS, and every survey value known. Can be completed and uploaded back as the survey."""
+    return _file(map_sheet.to_xlsx(db, project), XLSX, "survey-sheet.xlsx")

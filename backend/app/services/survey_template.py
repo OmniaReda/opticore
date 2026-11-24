@@ -6,6 +6,7 @@ from openpyxl import Workbook
 from openpyxl.comments import Comment
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.worksheet import Worksheet
 
 from app import rules
 
@@ -20,7 +21,9 @@ _HELP: dict[str, str] = {
 }
 
 
-def to_xlsx() -> bytes:
+def new_workbook(extra_columns: list[str] | None = None) -> tuple[Workbook, Worksheet]:
+    """Workbook with the survey sheet (configured headers + `extra_columns` after them) and the Instructions
+    sheet. The importer reads columns by header name, so extra columns are ignored when it is uploaded back."""
     cfg = rules.survey_columns()
     wb = Workbook()
     ws = wb.active
@@ -28,7 +31,11 @@ def to_xlsx() -> bytes:
     ws.title = cfg.sheet
     for _ in range(cfg.header_row - 1):
         ws.append([])
-    ws.append(list(cfg.columns.values()))
+    ws.append([*cfg.columns.values(), *(extra_columns or [])])
+    for i, title in enumerate(extra_columns or [], start=len(cfg.columns) + 1):
+        cell = ws.cell(row=cfg.header_row, column=i)
+        cell.font = Font(bold=True, color="0F4C81")
+        ws.column_dimensions[get_column_letter(i)].width = max(14, len(title) + 2)
     for i, field in enumerate(cfg.columns, start=1):
         cell = ws.cell(row=cfg.header_row, column=i)
         cell.font = Font(bold=True)
@@ -36,7 +43,7 @@ def to_xlsx() -> bytes:
             cell.fill = _REQUIRED_FILL
             cell.comment = Comment("Required", "OPTICORE")
         ws.column_dimensions[get_column_letter(i)].width = max(14, len(str(cell.value)) + 2)
-    ws.freeze_panes = ws.cell(row=cfg.header_row + 1, column=1).coordinate
+    ws.freeze_panes = f"A{cfg.header_row + 1}"  # a string: ws.cell() would create an empty data row
 
     info = wb.create_sheet("Instructions")
     info.append(["OPTICORE survey template"])
@@ -56,6 +63,15 @@ def to_xlsx() -> bytes:
     info.column_dimensions["B"].width = 10
     info.column_dimensions["C"].width = 80
 
+    return wb, ws
+
+
+def save(wb: Workbook) -> bytes:
     buf = io.BytesIO()
     wb.save(buf)
     return buf.getvalue()
+
+
+def to_xlsx() -> bytes:
+    wb, _ws = new_workbook()
+    return save(wb)

@@ -781,6 +781,95 @@
           }
         }
       }
+    },
+    "/projects/{project_id}/export/streets": {
+      "get": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Export Streets",
+        "description": "Named streets inside the project boundary with their OpenStreetMap names (Arabic / English) and length.",
+        "operationId": "export_streets",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}
+            }
+          },
+          "409": {
+            "description": "No boundary yet"
+          },
+          "502": {
+            "description": "OSM down"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{project_id}/export/survey-sheet": {
+      "get": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Export Survey Sheet",
+        "description": "The whole map in the survey template: one row per Building ID with street name (survey, else nearest\nOpenStreetMap street), GPS, and every survey value known. Can be completed and uploaded back as the survey.",
+        "operationId": "export_survey_sheet",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}
+            }
+          },
+          "409": {
+            "description": "No drawing yet"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

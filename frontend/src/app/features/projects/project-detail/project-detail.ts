@@ -48,11 +48,30 @@ export class ProjectDetail {
   /** Download links (boundary + buildings + IDs + survey users). */
   protected readonly exports = computed(() => {
     const base = `${this.rootUrl}/projects/${this.id()}/export`;
-    return [
+    const all = [
       { label: 'KMZ', url: `${base}/kmz`, title: 'Google Earth' },
       { label: 'Excel', url: `${base}/xlsx`, title: 'One row per building' },
       { label: 'DXF', url: `${base}/dxf`, title: 'AutoCAD, UTM 36N metres' },
     ];
+    const buildings = this.store.buildings();
+    if (buildings && (buildings.summary.total || buildings.summary.orphan_ids)) {
+      // The whole map in the survey template: one row per Building ID, street names filled in.
+      all.unshift({
+        label: 'Survey sheet (Excel)',
+        url: `${base}/survey-sheet`,
+        title:
+          'One row per Building ID in the survey template, with street names and all known data',
+      });
+    }
+    // Street names come from OpenStreetMap inside the boundary: available right after the first KML.
+    if (this.store.layers()?.boundary) {
+      all.push({
+        label: 'Streets & numbers (Excel)',
+        url: `${base}/streets`,
+        title: 'House numbers and street names inside the boundary, from OpenStreetMap',
+      });
+    }
+    return all;
   });
 
   /** Review categories shown on the map. */
