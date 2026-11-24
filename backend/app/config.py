@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     # (GPL — see docs/adr/0001-dwg-conversion.md). Not set → DWG uploads fail with a clear message.
     dwg2dxf_path: Path | None = None
     dwg_convert_timeout_s: int = 300
+    # A KML without a polygon (CAD exports draw the boundary as open lines): the lines are joined, and a
+    # line whose two ends are at most this far apart (metres, UTM) is closed and used as the boundary.
+    # Drawing tolerance for reading files, not an engineering rule.
+    kml_close_gap_m: float = 5.0
     # OpenStreetMap street names (streets export). Overpass is the read API meant for this; the main OSM API
     # is only a fallback for small areas (it is meant for editing). Results are cached per project boundary.
     osm_overpass_urls: list[str] = [
